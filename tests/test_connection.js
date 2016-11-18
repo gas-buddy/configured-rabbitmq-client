@@ -1,6 +1,26 @@
 import tap from 'tap';
+import net from 'net';
 import winston from 'winston';
 import RabbotClient from '../src/index';
+
+tap.test('wait for rabbit', async (t) => {
+  const s = new net.Socket();
+  for (let i = 0; i < 5; i += 1) {
+    let connected = false;
+    await new Promise((accept) => {
+      s.once('error', accept);
+      s.connect({
+        host: process.env.RABBIT_HOST || 'rabbitmq',
+        port: process.env.RABBIT_PORT,
+      }, () => {
+        connected = true;
+      });
+    });
+    if (connected) {
+      return;
+    }
+  }
+});
 
 tap.test('test_connection', async (t) => {
   const config = {
