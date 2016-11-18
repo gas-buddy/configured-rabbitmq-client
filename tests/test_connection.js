@@ -3,7 +3,7 @@ import net from 'net';
 import winston from 'winston';
 import RabbotClient from '../src/index';
 
-tap.test('wait for rabbit', async (t) => {
+tap.test('wait for rabbit', async () => {
   const s = new net.Socket();
   for (let i = 0; i < 5; i += 1) {
     let connected = false;
