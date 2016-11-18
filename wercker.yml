@@ -1,7 +1,7 @@
 box: node
 
 services:
-  - postgres:9.5-alpine
+  - rabbitmq
 
 build:
   steps:
@@ -14,10 +14,8 @@ build:
     - script:
       name: environment vars
       code: |
-        export PGHOST=$POSTGRES_PORT_5432_TCP_ADDR
-        export PGPORT=$POSTGRES_PORT_5432_TCP_PORT
-        export PGUSER=postgres
-        export PGPASSWORD=postgres
+        export RABBIT_HOST=$RABBITMQ_PORT_5672_TCP_ADDR
+        export RABBIT_PORT=$RABBITMQ_PORT_5672_TCP_PORT
 
     - npm-test
 
