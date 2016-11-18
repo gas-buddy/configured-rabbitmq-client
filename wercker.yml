@@ -17,6 +17,11 @@ build:
         export RABBIT_HOST=$RABBITMQ_PORT_5672_TCP_ADDR
         export RABBIT_PORT=$RABBITMQ_PORT_5672_TCP_PORT
 
+    - script:
+      name: "Wait for RabbitMQ connection"
+      code: |
+        while ! nc -q 1 $RABBITMQ_PORT_5672_TCP_ADDR $RABBITMQ_PORT_5672_TCP_PORT </dev/null; do sleep 3; done
+
     - npm-test
 
     - script:
