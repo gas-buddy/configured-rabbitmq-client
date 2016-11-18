@@ -1,0 +1,35 @@
+box: node
+
+services:
+  - postgres:9.5-alpine
+
+build:
+  steps:
+    - npm-install
+
+    - script:
+      name: lint
+      code: npm run lint
+
+    - script:
+      name: environment vars
+      code: |
+        export PGHOST=$POSTGRES_PORT_5432_TCP_ADDR
+        export PGPORT=$POSTGRES_PORT_5432_TCP_PORT
+        export PGUSER=postgres
+        export PGPASSWORD=postgres
+
+    - npm-test
+
+    - script:
+      name: build
+      code: npm run build
+
+deploy:
+  steps:
+    - script:
+      name: npm publish
+      code: |
+        npm config set unsafe-perm true
+        echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+        npm publish . --tag latest
