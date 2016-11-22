@@ -27,14 +27,24 @@ export default class RabbotClient {
         context.logger.info('RabbitMQ connection established.');
       }
     });
-    this.promise = rabbot.configure(Object.assign({}, opts.config, mqConnectionConfig));
+
+    const finalConfig = Object.assign({}, opts.config);
+    finalConfig.connection = Object.assign({}, finalConfig.connection, mqConnectionConfig);
+    this.promise = rabbot.configure(finalConfig);
   }
 
   async start(context) {
     assert(this.promise, 'start called multiple times on configured-rabbitmq-client instance');
     const promise = this.promise;
     delete this.promise;
-    await promise;
+    try {
+      await promise;
+    } catch (stringError) {
+      if (typeof stringError === 'string') {
+        throw new Error(stringError);
+      }
+      throw stringError;
+    }
 
     rabbot.nackUnhandled();
     rabbot.nackOnError();

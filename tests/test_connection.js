@@ -4,7 +4,7 @@ import winston from 'winston';
 import RabbotClient from '../src/index';
 
 const mqConfig = {
-  host: process.env.RABBIT_HOST || 'rabbitmq',
+  hostname: process.env.RABBIT_HOST || 'rabbitmq',
   port: process.env.RABBIT_PORT || 5672,
   username: process.env.RABBIT_USER || 'guest',
   password: process.env.RABBIT_PASSWORD || 'guest',
@@ -16,16 +16,22 @@ tap.test('wait for rabbit', async (t) => {
     await new Promise((accept) => {
       const s = new net.Socket();
       s.once('error', () => {
-        t.ok(true, `Waiting for RabbitMQ response from ${mqConfig.host}:${mqConfig.port}`);
-        setTimeout(accept, 2500);
+        if (!connected) {
+          t.ok(true, `Waiting for RabbitMQ response from ${mqConfig.hostname}:${mqConfig.port}`);
+          setTimeout(accept, 2500);
+        }
       });
-      s.connect(mqConfig, () => {
+      s.connect({
+        host: mqConfig.hostname,
+        port: mqConfig.port,
+      }, () => {
         connected = true;
-        accept();
+        s.end();
+        setTimeout(accept, 2500);
       });
     });
     if (connected) {
-      t.ok(true, 'RabbitMQ found');
+      t.ok(true, `RabbitMQ found on ${mqConfig.host}:${mqConfig.port}`);
       return;
     }
   }
