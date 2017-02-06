@@ -84,4 +84,18 @@ export default class RabbotClient {
     await rabbot.shutdown();
     rabbot.reset();
   }
+
+  static async gracefulQueueShutdown(q) {
+    if (q &&
+      q.lastQueue.messages.messages &&
+      q.lastQueue.messages.messages.length) {
+      return new Promise((accept) => {
+        q.lastQueue.messages
+          .on('empty', accept)
+          .once();
+      });
+    }
+    // Mostly for tests which restart right away, but rabbot is finicky
+    return Promise.delay(1000);
+  }
 }
