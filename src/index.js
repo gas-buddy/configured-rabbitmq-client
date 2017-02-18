@@ -36,11 +36,11 @@ export default class RabbotClient {
   }
 
   publish(...args) {
-    return rabbot.publish(...args);
+    return this.client.publish(...args);
   }
 
   request(...args) {
-    return rabbot.request(...args);
+    return this.client.request(...args);
   }
 
   async start(context) {
