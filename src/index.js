@@ -31,6 +31,16 @@ export default class RabbotClient {
     const finalConfig = Object.assign({}, opts.config);
     finalConfig.connection = Object.assign({}, finalConfig.connection, mqConnectionConfig);
     this.promise = rabbot.configure(finalConfig);
+    this.subs = [];
+    this.client = rabbot;
+  }
+
+  publish(...args) {
+    return rabbot.publish(...args);
+  }
+
+  request(...args) {
+    return rabbot.request(...args);
   }
 
   async start(context) {
@@ -62,7 +72,7 @@ export default class RabbotClient {
         context.logger.error('RabbitMQ connection has failed.');
       }
     });
-    return rabbot;
+    return this;
   }
 
   async stop(context) {
@@ -70,6 +80,10 @@ export default class RabbotClient {
     if (context && context.logger && context.logger.info) {
       context.logger.info('Closing RabbitMQ connection');
     }
+    await Promise.all(this.subs.map((s) => {
+      s[0].remove();
+      return RabbotClient.gracefulQueueShutdown(s[1]);
+    }));
     this.shuttingDown = true;
     this.connSubscription.unsubscribe();
     delete this.connSubscription;
@@ -83,6 +97,13 @@ export default class RabbotClient {
     }
     await rabbot.shutdown();
     rabbot.reset();
+  }
+
+  async subscribe(queueName, type, handler) {
+    const handlerThunk = rabbot.handle(type, handler);
+    const mq = rabbot.getQueue(queueName);
+    mq.subscribe(false);
+    this.subs.push([handlerThunk, mq]);
   }
 
   static async gracefulQueueShutdown(q) {
