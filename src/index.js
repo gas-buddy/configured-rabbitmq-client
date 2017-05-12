@@ -1,6 +1,7 @@
 import assert from 'assert';
 import rabbot from 'rabbot';
-import parseShorthandConfigs from './parseShorthandConfig.js'
+import { normalizeExchangeGroups,
+         rabbotConfigFromExchangeGroups } from './exchangeGroups';
 
 export default class RabbotClient {
   constructor(context, opts) {
@@ -29,8 +30,9 @@ export default class RabbotClient {
       }
     });
 
-    const configShorthands = parseShorthandConfigs(opts.shorthandConfigs || {});
-    const finalConfig = Object.assign({}, configShorthands, opts.config);
+    this.exchangeGroups = normalizeExchangeGroups(opts.exchangeGroups || {});
+    const exchangeGroupConfig = rabbotConfigFromExchangeGroups(this.exchangeGroups);
+    const finalConfig = Object.assign({}, exchangeGroupConfig, opts.config);
     finalConfig.connection = Object.assign({}, finalConfig.connection, mqConnectionConfig);
     this.promise = rabbot.configure(finalConfig);
     this.subs = [];
@@ -102,35 +104,42 @@ export default class RabbotClient {
   }
 
   async subscribe(queueName, type, handler) {
-    const wrappedHandler = async (message) => {
-      try {
-        await handler(message);
-      } catch (e) {
-        let retryExchangeName = message.fields.exchange + '.retry';
-        let retryExchange = rabbot.getExchange(retryExchangeName);
-        let headers = message.properties.headers || {};
-        let retryCount = (headers.retryCount || 0);
-        retryCount++;
-        headers.retryCount = retryCount;
-        if (!retryExchange || retryCount > 5) {
-          message.reject();
-        } else {
-          const messageOptions = {
-            type: message.type,
-            body: message.body,
-            routingKey: message.fields.routingKey,
-            correlationId: message.properties.correlationId,
-            timestamp: message.properties.timestamp,
-            headers,
-          };
-          await this.publish(retryExchangeName, messageOptions);
-          message.ack();
-        }
+    let wrappedHandler = handler;
+    let finalQueueName = queueName;
+    const exchangeGroup = this.exchangeGroups[queueName];
+
+    if (exchangeGroup) {
+      finalQueueName = exchangeGroup.queue.name;
+      if (exchangeGroup.retries) {
+        wrappedHandler = async (message) => {
+          try {
+            await handler(message);
+          } catch (e) {
+            let headers = message.properties.headers || {};
+            let retryCount = (headers.retryCount || 0);
+            retryCount++;
+            headers.retryCount = retryCount;
+            if (retryCount > exchangeGroup.retries) {
+              message.reject();
+            } else {
+              const messageOptions = {
+                type: message.type,
+                body: message.body,
+                routingKey: message.fields.routingKey,
+                correlationId: message.properties.correlationId,
+                timestamp: message.properties.timestamp,
+                headers,
+              };
+              await this.publish(exchangeGroup.retryExchange.name, messageOptions);
+              message.ack();
+            }
+          }
+        };
       }
-    };
+    }
 
     const handlerThunk = rabbot.handle(type, wrappedHandler);
-    const mq = rabbot.getQueue(queueName);
+    const mq = rabbot.getQueue(finalQueueName);
     mq.subscribe(false);
     this.subs.push([handlerThunk, mq]);
   }
