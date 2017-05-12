@@ -1,9 +1,9 @@
 import tap from 'tap';
 import net from 'net';
 import winston from 'winston';
-import RabbotClient from '../src/index';
-import _ from 'lodash';
 import bluebird from 'bluebird';
+import RabbotClient from '../src/index';
+
 global.Promise = bluebird;
 
 const mqConfig = {
@@ -12,9 +12,9 @@ const mqConfig = {
   username: process.env.RABBIT_USER || 'guest',
   password: process.env.RABBIT_PASSWORD || 'guest',
   exchangeGroups: {
-    'test': {
-      'retryDelay': 250,
-      'keys': 'testkey',
+    test: {
+      retryDelay: 250,
+      keys: 'testkey',
     },
   },
 };
@@ -50,12 +50,12 @@ tap.test('wait for rabbit', async (t) => {
 tap.test('test exchange group retry', async (t) => {
   t.plan(6);
   const mq = new RabbotClient(winston, mqConfig);
-  const client = await mq.start();
+  await mq.start();
   let counter = 0;
-  await new Promise(async (accept, reject) => {
+  await new Promise(async (accept) => {
     await mq.subscribe('test', 'testkey',
-                       async (message) => {
-                         counter++;
+                       async () => {
+                         counter += 1;
                          t.ok(true, `Recieved messsage for the ${counter} time.`);
                          if (counter === 6) {
                            accept();

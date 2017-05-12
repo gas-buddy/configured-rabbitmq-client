@@ -115,9 +115,8 @@ export default class RabbotClient {
           try {
             await handler(message);
           } catch (e) {
-            let headers = message.properties.headers || {};
-            let retryCount = (headers.retryCount || 0);
-            retryCount++;
+            const headers = message.properties.headers || {};
+            const retryCount = (headers.retryCount || 0) + 1;
             headers.retryCount = retryCount;
             if (retryCount > exchangeGroup.retries) {
               message.reject();

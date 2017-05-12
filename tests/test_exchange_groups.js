@@ -1,6 +1,6 @@
 import tap from 'tap';
-import { normalizeExchangeGroups, rabbotConfigFromExchangeGroups } from '../src/exchangeGroups';
 import _ from 'lodash';
+import { normalizeExchangeGroups, rabbotConfigFromExchangeGroups } from '../src/exchangeGroups';
 
 const simpleCase = {
   keys: 'simplekey',
