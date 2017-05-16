@@ -11,10 +11,12 @@ const mqConfig = {
   port: process.env.RABBIT_PORT || 5672,
   username: process.env.RABBIT_USER || 'guest',
   password: process.env.RABBIT_PASSWORD || 'guest',
-  exchangeGroups: {
-    test: {
-      retryDelay: 250,
-      keys: 'testkey',
+  config: {
+    exchangeGroups: {
+      test: {
+        retryDelay: 250,
+        keys: 'testkey',
+      },
     },
   },
 };
