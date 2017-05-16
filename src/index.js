@@ -30,9 +30,11 @@ export default class RabbotClient {
       }
     });
 
-    this.exchangeGroups = normalizeExchangeGroups(opts.exchangeGroups || {});
+    this.exchangeGroups = (opts.config && opts.config.exchangeGroups) || {};
+    this.exchangeGroups = normalizeExchangeGroups(this.exchangeGroups);
     const exchangeGroupConfig = rabbotConfigFromExchangeGroups(this.exchangeGroups);
     const finalConfig = Object.assign({}, opts.config);
+    delete finalConfig.exchangeGroups;
     finalConfig.exchanges = (finalConfig.exchanges || []).concat(exchangeGroupConfig.exchanges);
     finalConfig.queues = (finalConfig.queues || []).concat(exchangeGroupConfig.queues);
     finalConfig.bindings = (finalConfig.bindings || []).concat(exchangeGroupConfig.bindings);
