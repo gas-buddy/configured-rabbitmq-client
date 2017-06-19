@@ -1,5 +1,6 @@
 import assert from 'assert';
 import rabbot from 'rabbot';
+import _ from 'lodash';
 import { normalizeExchangeGroups,
          rabbotConfigFromExchangeGroups } from './exchangeGroups';
 
@@ -39,7 +40,16 @@ export default class RabbotClient {
     finalConfig.queues = (finalConfig.queues || []).concat(exchangeGroupConfig.queues);
     finalConfig.bindings = (finalConfig.bindings || []).concat(exchangeGroupConfig.bindings);
     finalConfig.connection = Object.assign({}, finalConfig.connection, mqConnectionConfig);
-    this.promise = rabbot.configure(finalConfig);
+
+    let dependencies = (opts.config && opts.config.dependencies) || [];
+    dependencies = _.map(dependencies, d => ({
+      name: d,
+      passive: true,
+    }));
+    finalConfig.exchanges = finalConfig.exchanges.concat(dependencies);
+
+    this.finalConfig = finalConfig;
+    this.startedCalled = false;
     this.subs = [];
     this.client = rabbot;
   }
@@ -53,16 +63,24 @@ export default class RabbotClient {
   }
 
   async start(context) {
-    assert(this.promise, 'start called multiple times on configured-rabbitmq-client instance');
-    const promise = this.promise;
-    delete this.promise;
-    try {
-      await promise;
-    } catch (stringError) {
-      if (typeof stringError === 'string') {
-        throw new Error(stringError);
+    assert(!this.startCalled, 'start called multiple times on configured-rabbitmq-client instance');
+    this.startCalled = true;
+
+    for (let retries = 5; retries >= 0; retries -= 1) {
+      try {
+        await rabbot.configure(this.finalConfig);
+        break;
+      } catch (stringError) {
+        if (retries) {
+          context.logger.warn(`Queue configuration failed, retrying ${retries} more times`, stringError);
+          await Promise.delay(20000);
+        } else {
+          if (typeof stringError === 'string') {
+            throw new Error(stringError);
+          }
+          throw stringError;
+        }
       }
-      throw stringError;
     }
 
     rabbot.nackUnhandled();
@@ -85,7 +103,7 @@ export default class RabbotClient {
   }
 
   async stop(context) {
-    assert(!this.promise, 'stop called multiple times on configured-rabbitmq-client instance');
+    assert(this.startCalled, 'stop called multiple times on configured-rabbitmq-client instance');
     if (context && context.logger && context.logger.info) {
       context.logger.info('Closing RabbitMQ connection');
     }
