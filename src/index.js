@@ -66,14 +66,15 @@ export default class RabbotClient {
     assert(!this.startCalled, 'start called multiple times on configured-rabbitmq-client instance');
     this.startCalled = true;
 
-    for (let retries = 5; retries >= 0; retries -= 1) {
+    const maxRetries = 5;
+    for (let retries = maxRetries; retries >= 0; retries -= 1) {
       try {
         await rabbot.configure(this.finalConfig);
         break;
       } catch (stringError) {
         if (retries) {
           context.logger.warn(`Queue configuration failed, retrying ${retries} more times`, stringError);
-          await Promise.delay(20000);
+          await Promise.delay((1 + (maxRetries - retries)) * 2000);
         } else {
           if (typeof stringError === 'string') {
             throw new Error(stringError);
