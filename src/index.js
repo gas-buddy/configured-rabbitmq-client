@@ -54,6 +54,10 @@ export default class RabbotClient {
     this.client = rabbot;
   }
 
+  setContextFromQueueMessageFunction(contextFromQueueMessage) {
+    this.contextFromQueueMessage = contextFromQueueMessage;
+  }
+
   publish(...args) {
     return this.client.publish(...args);
   }
@@ -128,7 +132,11 @@ export default class RabbotClient {
   }
 
   async subscribe(queueName, type, handler) {
-    let wrappedHandler = handler;
+    let wrappedHandler = async (message) => {
+      const context = this.contextFromQueueMessage && this.contextFromQueueMessage(message);
+      await handler(context, message);
+    };
+
     let finalQueueName = queueName;
     const exchangeGroup = this.exchangeGroups[queueName];
 
@@ -136,15 +144,24 @@ export default class RabbotClient {
       finalQueueName = exchangeGroup.queue.name;
       if (exchangeGroup.retries) {
         wrappedHandler = async (message) => {
+          const context = this.contextFromQueueMessage && this.contextFromQueueMessage(message);
           try {
-            await handler(message);
+            await handler(context, message);
           } catch (e) {
             const headers = message.properties.headers || {};
             const retryCount = (headers.retryCount || 0) + 1;
             headers.retryCount = retryCount;
+            headers.error = e.message;
+            e.queueMessage = message;
             if (retryCount > exchangeGroup.retries) {
+              if (context) {
+                context.gb.logger.error(`Exception handling message. Retry limit ${exchangeGroup.retries} exceeded`, context.gb.wrapError(e));
+              }
               message.reject();
             } else {
+              if (context) {
+                context.gb.logger.error('Exception handling message.', context.gb.wrapError(e));
+              }
               const messageOptions = {
                 type: message.type,
                 body: message.body,
