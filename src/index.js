@@ -54,8 +54,9 @@ export default class RabbotClient {
     this.client = rabbot;
   }
 
-  setContextFromQueueMessageFunction(contextFromQueueMessage) {
-    this.contextFromQueueMessage = contextFromQueueMessage;
+  // Function should recieve a queue message and return a gb-services style context.
+  setContextFunction(contextFunction) {
+    this.contextFunction = contextFunction;
   }
 
   publish(...args) {
@@ -133,7 +134,7 @@ export default class RabbotClient {
 
   async subscribe(queueName, type, handler) {
     let wrappedHandler = async (message) => {
-      const context = this.contextFromQueueMessage && this.contextFromQueueMessage(message);
+      const context = this.contextFunction && this.contextFunction(message);
       await handler(context, message);
     };
 
@@ -144,7 +145,7 @@ export default class RabbotClient {
       finalQueueName = exchangeGroup.queue.name;
       if (exchangeGroup.retries) {
         wrappedHandler = async (message) => {
-          const context = this.contextFromQueueMessage && this.contextFromQueueMessage(message);
+          const context = this.contextFunction && this.contextFunction(message);
           try {
             await handler(context, message);
           } catch (e) {
