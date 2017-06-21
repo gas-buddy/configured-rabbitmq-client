@@ -49,6 +49,7 @@ export default class RabbotClient {
     finalConfig.exchanges = finalConfig.exchanges.concat(dependencies);
 
     this.finalConfig = finalConfig;
+    this.originalContext = context;
     this.contextFunction = opts.contextFunction;
     this.startedCalled = false;
     this.subs = [];
@@ -132,7 +133,8 @@ export default class RabbotClient {
 
   async subscribe(queueName, type, handler) {
     let wrappedHandler = async (message) => {
-      const context = this.contextFunction && this.contextFunction(message);
+      const context = this.contextFunction &&
+            await this.contextFunction(this.originalContext, message);
       await handler(context, message);
     };
 
@@ -143,7 +145,8 @@ export default class RabbotClient {
       finalQueueName = exchangeGroup.queue.name;
       if (exchangeGroup.retries) {
         wrappedHandler = async (message) => {
-          const context = this.contextFunction && this.contextFunction(message);
+          const context = this.contextFunction &&
+                await this.contextFunction(this.originalContext, message);
           try {
             await handler(context, message);
           } catch (e) {
