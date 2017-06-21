@@ -49,15 +49,13 @@ export default class RabbotClient {
     finalConfig.exchanges = finalConfig.exchanges.concat(dependencies);
 
     this.finalConfig = finalConfig;
+    this.contextFunction = opts.contextFunction;
     this.startedCalled = false;
     this.subs = [];
     this.client = rabbot;
   }
 
   // Function should recieve a queue message and return a gb-services style context.
-  setContextFunction(contextFunction) {
-    this.contextFunction = contextFunction;
-  }
 
   publish(...args) {
     return this.client.publish(...args);
