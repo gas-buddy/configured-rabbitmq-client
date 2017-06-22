@@ -155,7 +155,7 @@ export default class RabbotClient {
             headers.retryCount = retryCount;
             headers.error = e.message;
             e.queueMessage = message;
-            if (retryCount > exchangeGroup.retries) {
+            if (retryCount > exchangeGroup.retries || e.noRetry) {
               if (context) {
                 context.gb.logger.error(`Exception handling message. Retry limit ${exchangeGroup.retries} exceeded`, context.gb.wrapError(e));
               }

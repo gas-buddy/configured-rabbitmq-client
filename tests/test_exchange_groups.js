@@ -22,11 +22,19 @@ const complexCase = {
   keys: ['somekey', 'someotherkey'],
 };
 
+const rejectedOnlyCase = {
+  retries: 0,
+  rejectedExchange: true,
+  keys: 'rejectedonlykey',
+};
+
 const exchangeGroups = {
   simpleCase,
   noRetryCase,
   complexCase,
+  rejectedOnlyCase,
 };
+
 
 tap.test('test exchange group normalization', async (t) => {
   const finalGroups = normalizeExchangeGroups(exchangeGroups);
@@ -48,6 +56,13 @@ tap.test('test exchange group normalization', async (t) => {
   t.ok(finalGroups.complexCase.queue.name === complexCase.queue.name, 'Deep queue name is accepted');
   t.ok(finalGroups.complexCase.queue.autoDelete === complexCase.queue.autoDelete, 'Deep queue properties are accepted');
   t.ok(finalGroups.complexCase.retryQueue.name === complexCase.retryQueue, 'Additional queue overrides are accepted.');
+
+  t.ok(finalGroups.rejectedOnlyCase.exchange &&
+       finalGroups.rejectedOnlyCase.queue &&
+       !finalGroups.rejectedOnlyCase.retryExchange &&
+       !finalGroups.rejectedOnlyCase.retryQueue &&
+       finalGroups.rejectedOnlyCase.rejectedExchange &&
+       finalGroups.rejectedOnlyCase.rejectedQueue && 'Rejected queue should be generated when specified with zero retries');
 });
 
 tap.test('test exchange group to rabbot config translation', async (t) => {

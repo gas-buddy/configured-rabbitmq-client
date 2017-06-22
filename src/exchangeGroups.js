@@ -14,9 +14,12 @@ const queueDefaults = {
 
 function groupFromInput(param, defaultName) {
   let returnVal = {};
-  if (param) {
-    returnVal = _.isString(param) ? { name: param } : param;
+  if (_.isString(param)) {
+    returnVal = { name: param };
+  } else if (_.isObject(param)) {
+    returnVal = param;
   }
+
   returnVal.name = returnVal.name || defaultName;
   return returnVal;
 }
@@ -40,9 +43,13 @@ function normalizeExchangeGroup(key, group) {
   if (normalized.retries) {
     normalized.retryExchange = groupFromInput(group.retryExchange, `${exchangeName}.retry`);
     normalized.retryQueue = groupFromInput(group.retryQueue, `${normalized.retryExchange.name}.q`);
+  }
+
+  if (normalized.retries || group.rejectedExchange || group.rejectedQueue) {
     normalized.rejectedExchange = groupFromInput(group.rejectedExchange, `${exchangeName}.rejected`);
     normalized.rejectedQueue = groupFromInput(group.rejectedQueue, `${normalized.rejectedExchange.name}.q`);
   }
+
 
   return normalized;
 }
