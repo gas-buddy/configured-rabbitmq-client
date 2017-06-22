@@ -49,10 +49,14 @@ export default class RabbotClient {
     finalConfig.exchanges = finalConfig.exchanges.concat(dependencies);
 
     this.finalConfig = finalConfig;
+    this.originalContext = context;
+    this.contextFunction = opts.contextFunction;
     this.startedCalled = false;
     this.subs = [];
     this.client = rabbot;
   }
+
+  // Function should recieve a queue message and return a gb-services style context.
 
   publish(...args) {
     return this.client.publish(...args);
@@ -128,7 +132,12 @@ export default class RabbotClient {
   }
 
   async subscribe(queueName, type, handler) {
-    let wrappedHandler = handler;
+    let wrappedHandler = async (message) => {
+      const context = this.contextFunction &&
+            await this.contextFunction(this.originalContext, message);
+      await handler(context, message);
+    };
+
     let finalQueueName = queueName;
     const exchangeGroup = this.exchangeGroups[queueName];
 
@@ -136,15 +145,25 @@ export default class RabbotClient {
       finalQueueName = exchangeGroup.queue.name;
       if (exchangeGroup.retries) {
         wrappedHandler = async (message) => {
+          const context = this.contextFunction &&
+                await this.contextFunction(this.originalContext, message);
           try {
-            await handler(message);
+            await handler(context, message);
           } catch (e) {
             const headers = message.properties.headers || {};
             const retryCount = (headers.retryCount || 0) + 1;
             headers.retryCount = retryCount;
+            headers.error = e.message;
+            e.queueMessage = message;
             if (retryCount > exchangeGroup.retries) {
+              if (context) {
+                context.gb.logger.error(`Exception handling message. Retry limit ${exchangeGroup.retries} exceeded`, context.gb.wrapError(e));
+              }
               message.reject();
             } else {
+              if (context) {
+                context.gb.logger.error('Exception handling message.', context.gb.wrapError(e));
+              }
               const messageOptions = {
                 type: message.type,
                 body: message.body,

@@ -14,6 +14,7 @@ const mqConfig = {
   config: {
     exchangeGroups: {
       test: {
+        retries: 5,
         retryDelay: 250,
         keys: 'testkey',
       },
@@ -50,19 +51,25 @@ tap.test('wait for rabbit', async (t) => {
 });
 
 tap.test('test exchange group retry', async (t) => {
-  t.plan(6);
+  const retryCount = mqConfig.config.exchangeGroups.test.retries;
+  t.plan((retryCount + 1) + retryCount);
   const mq = new RabbotClient(winston, mqConfig);
   await mq.start();
   let counter = 0;
+  const errorMessage = 'retry again';
+
   await new Promise(async (accept) => {
     await mq.subscribe('test', 'testkey',
-                       async () => {
+                       async (context, message) => {
+                         if (counter > 0) {
+                           t.equal(message.properties.headers.error, errorMessage, 'Previous error message is written to message headers');
+                         }
                          counter += 1;
                          t.ok(true, `Recieved messsage for the ${counter} time.`);
-                         if (counter === 6) {
+                         if (counter === retryCount + 1) {
                            accept();
                          }
-                         throw new Error('retry again');
+                         throw new Error(errorMessage);
                        });
     await mq.publish('test', 'testkey', {});
   }).then(async () => {
