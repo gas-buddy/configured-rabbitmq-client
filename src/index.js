@@ -163,16 +163,20 @@ export default class RabbotClient {
             const retryCount = (headers.retryCount || 0) + 1;
             headers.retryCount = retryCount;
             headers.error = e.message;
-            e.queueMessage = message;
+
+            // Error logging
+            if (context) {
+              const loggingMetadata = context.gb.wrapError(e);
+              loggingMetadata.queueName = finalQueueName;
+              loggingMetadata.type = message.type;
+              loggingMetadata.routingKey = message.fields.routingKey;
+              loggingMetadata.retryCount = retryCount;
+              context.gb.logger.error('Error handling queue message.', loggingMetadata);
+            }
+
             if (retryCount > exchangeGroup.retries || e.noRetry) {
-              if (context) {
-                context.gb.logger.error(`Exception handling message. Retry limit ${exchangeGroup.retries} exceeded`, context.gb.wrapError(e));
-              }
               message.reject();
             } else {
-              if (context) {
-                context.gb.logger.error('Exception handling message.', context.gb.wrapError(e));
-              }
               const messageOptions = {
                 type: message.type,
                 body: message.body,
