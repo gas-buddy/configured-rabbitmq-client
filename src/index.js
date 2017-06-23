@@ -42,10 +42,14 @@ export default class RabbotClient {
     finalConfig.connection = Object.assign({}, finalConfig.connection, mqConnectionConfig);
 
     let dependencies = (opts.config && opts.config.dependencies) || [];
-    dependencies = _.map(dependencies, d => ({
-      name: d,
-      passive: true,
-    }));
+
+    const dependencyAttribs = {};
+    // Create dependencies in test mode.
+    if (process.env.NODE_ENV !== 'test') {
+      dependencyAttribs.passive = true;
+    }
+    dependencies = _.map(dependencies, d => Object.assign({ name: d }, dependencyAttribs));
+
     finalConfig.exchanges = finalConfig.exchanges.concat(dependencies);
 
     this.finalConfig = finalConfig;
