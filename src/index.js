@@ -133,9 +133,13 @@ export default class RabbotClient {
 
   async subscribe(queueName, type, handler) {
     let wrappedHandler = async (message) => {
-      const context = this.contextFunction &&
+      if (handler.length === 2) {
+        const context = this.contextFunction &&
             await this.contextFunction(this.originalContext, message);
-      await handler(context, message);
+        await handler(context, message);
+      } else {
+        await handler(message);
+      }
     };
 
     let finalQueueName = queueName;
@@ -145,10 +149,15 @@ export default class RabbotClient {
       finalQueueName = exchangeGroup.queue.name;
       if (exchangeGroup.retries) {
         wrappedHandler = async (message) => {
-          const context = this.contextFunction &&
-                await this.contextFunction(this.originalContext, message);
+          let context;
           try {
-            await handler(context, message);
+            if (handler.length === 2) {
+              context = this.contextFunction &&
+                await this.contextFunction(this.originalContext, message);
+              await handler(context, message);
+            } else {
+              await handler(message);
+            }
           } catch (e) {
             const headers = message.properties.headers || {};
             const retryCount = (headers.retryCount || 0) + 1;
