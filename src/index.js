@@ -92,6 +92,26 @@ export default class RabbotClient {
       }
     }
 
+    const configuredExchanges = _
+          .chain(this.client.connections.default.channels)
+          .pickBy((v, k) => k.startsWith('exchange') && k !== 'exchange:')
+          .map((v, k) => k.replace(/^exchange:/, ''))
+          .value();
+
+    const unconfiguredExchanges = _
+          .chain(this.finalConfig.exchanges)
+          .map(e => e.name)
+          .difference(configuredExchanges)
+          .value();
+
+    if (unconfiguredExchanges.length) {
+      const configurationError = new Error('Failed to configure rabbitmq exchanges!');
+      configurationError.unconfiguredExchanges = unconfiguredExchanges;
+      context.logger.error('Failed to configure rabbitmq exchanges!',
+                           context.service.wrapError(configurationError));
+      throw configurationError;
+    }
+
     rabbot.nackUnhandled();
     rabbot.nackOnError();
 
