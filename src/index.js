@@ -176,7 +176,15 @@ export default class RabbotClient {
     this.startCalled = false;
   }
 
-  async subscribe(queueName, type, handler) {
+  async unsubscribe(handlerThunk) {
+    const ix = this.subs.findIndex(t => t[0] === handlerThunk);
+    const [, q] = this.subs[ix];
+    handlerThunk.remove();
+    this.subs.splice(ix, 1);
+    return RabbotClient.gracefulQueueShutdown(q);
+  }
+
+  subscribe(queueName, type, handler) {
     let wrappedHandler = async (message) => {
       if (handler.length === 2) {
         const context = this.contextFunction &&
@@ -242,6 +250,7 @@ export default class RabbotClient {
     const mq = rabbot.getQueue(finalQueueName);
     mq.subscribe(false);
     this.subs.push([handlerThunk, mq]);
+    return handlerThunk;
   }
 
   static async gracefulQueueShutdown(q) {

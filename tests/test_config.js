@@ -6,24 +6,7 @@ import RabbotClient from '../src/index';
 
 global.Promise = bluebird;
 
-const mqConfig = {
-  hostname: process.env.RABBIT_HOST || 'rabbitmq',
-  port: process.env.RABBIT_PORT || 5672,
-  username: process.env.RABBIT_USER || 'guest',
-  password: process.env.RABBIT_PASSWORD || 'guest',
-  config: {
-    exchangeGroups: {
-      test: {
-        retries: 5,
-        retryDelay: 250,
-        keys: 'testkey',
-      },
-    },
-  },
-  logging: {
-    level: 2,
-  },
-};
+const mqConfig = require('./sampleConfig.json');
 
 tap.test('wait for rabbit', async (t) => {
   for (let i = 0; i < 10; i += 1) {

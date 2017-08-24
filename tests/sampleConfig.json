@@ -1,0 +1,15 @@
+{
+  "hostname": "rabbitmq",
+  "port": 5672,
+  "username": "guest",
+  "password": "guest",
+  "config": {
+    "exchangeGroups": {
+      "test": {
+        "retries": 5,
+        "retryDelay": 250,
+        "keys": "testkey"
+      }
+    }
+  }
+}
