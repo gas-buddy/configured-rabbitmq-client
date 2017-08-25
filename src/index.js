@@ -228,7 +228,7 @@ export default class RabbotClient {
             }
 
             if (retryCount > exchangeGroup.retries || e.noRetry) {
-              message.reject();
+              await message.reject();
             } else {
               const messageOptions = {
                 type: message.type,
