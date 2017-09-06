@@ -25,6 +25,7 @@ const mqConfig = {
 tap.test('wait for rabbit', async (t) => {
   for (let i = 0; i < 10; i += 1) {
     let connected = false;
+    // eslint-disable-next-line no-await-in-loop
     await new Promise((accept) => {
       const s = new net.Socket();
       s.once('error', () => {
@@ -60,17 +61,17 @@ tap.test('test exchange group retry', async (t) => {
 
   await new Promise(async (accept) => {
     await mq.subscribe('test', 'testkey',
-                       async (context, message) => {
-                         if (counter > 0) {
-                           t.equal(message.properties.headers.error, errorMessage, 'Previous error message is written to message headers');
-                         }
-                         counter += 1;
-                         t.ok(true, `Recieved messsage for the ${counter} time.`);
-                         if (counter === retryCount + 1) {
-                           accept();
-                         }
-                         throw new Error(errorMessage);
-                       });
+      async (context, message) => {
+        if (counter > 0) {
+          t.equal(message.properties.headers.error, errorMessage, 'Previous error message is written to message headers');
+        }
+        counter += 1;
+        t.ok(true, `Recieved messsage for the ${counter} time.`);
+        if (counter === retryCount + 1) {
+          accept();
+        }
+        throw new Error(errorMessage);
+      });
     await mq.publish('test', 'testkey', {});
   }).then(async () => {
     await mq.stop();

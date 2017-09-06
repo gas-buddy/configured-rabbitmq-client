@@ -1,8 +1,10 @@
 import assert from 'assert';
 import rabbot from 'rabbot';
 import _ from 'lodash';
-import { normalizeExchangeGroups,
-         rabbotConfigFromExchangeGroups } from './exchangeGroups';
+import {
+  normalizeExchangeGroups,
+  rabbotConfigFromExchangeGroups,
+} from './exchangeGroups';
 
 export default class RabbotClient {
   constructor(context, opts) {
@@ -17,6 +19,7 @@ export default class RabbotClient {
       });
     }
     const mqConnectionConfig = {
+      ...opts.connectionOptions,
       user: opts.username,
       pass: opts.password,
       host: opts.hostname || 'rabbitmq',
@@ -77,11 +80,13 @@ export default class RabbotClient {
     const maxRetries = 5;
     for (let retries = maxRetries; retries >= 0; retries -= 1) {
       try {
+        // eslint-disable-next-line no-await-in-loop
         await rabbot.configure(this.finalConfig);
         break;
       } catch (stringError) {
         if (retries) {
           context.logger.warn(`Queue configuration failed, retrying ${retries} more times`, stringError);
+          // eslint-disable-next-line no-await-in-loop
           await Promise.delay((1 + (maxRetries - retries)) * 2000);
         } else {
           if (typeof stringError === 'string') {
@@ -105,7 +110,15 @@ export default class RabbotClient {
     this.unreachSubscription = rabbot.on('unreachable', () => {
       // TODO shutdown the process?
       if (context && context.logger && context.logger.error) {
-        context.logger.error('RabbitMQ connection has failed.');
+        context.logger.error('RabbitMQ connection has failed permanently.');
+      }
+    });
+    this.failSubscription = rabbot.onReturned('failed', (e) => {
+      if (context && context.logger && context.logger.error) {
+        context.logger.error('RabbitMQ connection has failed.', {
+          error: e.message,
+          stack: e.stack,
+        });
       }
     });
     return this;
@@ -139,7 +152,7 @@ export default class RabbotClient {
     let wrappedHandler = async (message) => {
       if (handler.length === 2) {
         const context = this.contextFunction &&
-            await this.contextFunction(this.originalContext, message);
+          await this.contextFunction(this.originalContext, message);
         await handler(context, message);
       } else {
         await handler(message);
