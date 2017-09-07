@@ -1,5 +1,6 @@
 import assert from 'assert';
 import rabbot from 'rabbot';
+import path from 'path';
 import _ from 'lodash';
 import {
   normalizeExchangeGroups,
@@ -54,6 +55,17 @@ export default class RabbotClient {
     dependencies = _.map(dependencies, d => Object.assign({ name: d }, dependencyAttribs));
 
     finalConfig.exchanges = finalConfig.exchanges.concat(dependencies);
+
+    if (opts.logging) {
+      finalConfig.logging = {
+        adapters: {
+          [path.join(__dirname, 'whistlewinston.js')]: {
+            ...opts.logging,
+            context,
+          },
+        },
+      };
+    }
 
     this.finalConfig = finalConfig;
     this.originalContext = context;

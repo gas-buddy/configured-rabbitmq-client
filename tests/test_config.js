@@ -20,6 +20,9 @@ const mqConfig = {
       },
     },
   },
+  logging: {
+    level: 2,
+  },
 };
 
 tap.test('wait for rabbit', async (t) => {
@@ -54,7 +57,7 @@ tap.test('wait for rabbit', async (t) => {
 tap.test('test exchange group retry', async (t) => {
   const retryCount = mqConfig.config.exchangeGroups.test.retries;
   t.plan((retryCount + 1) + retryCount);
-  const mq = new RabbotClient(winston, mqConfig);
+  const mq = new RabbotClient({ logger: winston }, mqConfig);
   await mq.start();
   let counter = 0;
   const errorMessage = 'retry again';
