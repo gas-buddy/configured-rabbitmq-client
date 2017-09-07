@@ -103,6 +103,7 @@ export default class RabbotClient {
         if (retries) {
           context.logger.warn(`Queue configuration failed, retrying ${retries} more times`, stringError);
           try {
+            // eslint-disable-next-line no-await-in-loop
             await rabbot.shutdown();
             rabbot.reset();
           } catch (inner) {
