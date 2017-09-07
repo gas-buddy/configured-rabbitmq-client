@@ -20,6 +20,10 @@ export default class RabbotClient {
       });
     }
     const mqConnectionConfig = {
+      // In our usage, we've found that a short timeout causes trouble
+      // on startup with spurious connection errors just because the box
+      // is busy. So we default to a higher initial timeout
+      timeout: 15000,
       ...opts.connectionOptions,
       user: opts.username,
       pass: opts.password,
@@ -98,6 +102,15 @@ export default class RabbotClient {
       } catch (stringError) {
         if (retries) {
           context.logger.warn(`Queue configuration failed, retrying ${retries} more times`, stringError);
+          try {
+            await rabbot.shutdown();
+            rabbot.reset();
+          } catch (inner) {
+            context.logger.warn('Rabbot cleanup failed', {
+              error: inner.message,
+              stack: inner.stack,
+            });
+          }
           // eslint-disable-next-line no-await-in-loop
           await Promise.delay((1 + (maxRetries - retries)) * 2000);
         } else {
@@ -133,6 +146,7 @@ export default class RabbotClient {
         });
       }
     });
+
     return this;
   }
 
@@ -158,6 +172,7 @@ export default class RabbotClient {
     }
     await rabbot.shutdown();
     rabbot.reset();
+    this.startCalled = false;
   }
 
   async subscribe(queueName, type, handler) {
