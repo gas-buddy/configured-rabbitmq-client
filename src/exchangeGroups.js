@@ -30,6 +30,7 @@ function normalizeExchangeGroup(key, group) {
   }
 
   const normalized = {
+    readLimit: group.readLimit || 100,
     retryDelay: group.retryDelay || 10000,
     retries: _.isNumber(group.retries) ? group.retries : 5,
     keys: group.keys,
@@ -84,6 +85,7 @@ export function rabbotConfigFromExchangeGroups(exchangeGroups) {
   Object.entries(exchangeGroups).forEach(([, g]) => {
     const exchange = Object.assign({}, exchangeDefaults, g.exchange);
     const queue = Object.assign({}, queueDefaults, g.queue);
+    queue.limit = g.readLimit;
 
     if (g.retries) {
       const retryExchange = Object.assign({}, exchangeDefaults, g.retryExchange);
