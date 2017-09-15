@@ -87,14 +87,16 @@ export function rabbotConfigFromExchangeGroups(exchangeGroups) {
     const queue = Object.assign({}, queueDefaults, g.queue);
     queue.limit = g.readLimit;
 
-    if (g.retries) {
+    if (g.retryExchange) {
       const retryExchange = Object.assign({}, exchangeDefaults, g.retryExchange);
       const retryQueue = Object.assign({}, queueDefaults, g.retryQueue);
       retryQueue.messageTtl = g.retryDelay;
       retryQueue.deadLetter = exchange.name;
 
       addBinding(rabbotConfig, retryExchange, retryQueue, g.keys);
+    }
 
+    if (g.rejectedExchange) {
       const rejectedExchange = Object.assign({}, exchangeDefaults, g.rejectedExchange);
       const rejectedQueue = Object.assign({}, queueDefaults, g.rejectedQueue);
 
