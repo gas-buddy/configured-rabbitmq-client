@@ -70,4 +70,5 @@ tap.test('test exchange group to rabbot config translation', async (t) => {
   const rabbotConfig = rabbotConfigFromExchangeGroups(finalGroups);
 
   t.ok(_.find(rabbotConfig.queues, ['name', finalGroups.complexCase.queue.name]).autoDelete === complexCase.queue.autoDelete, 'Specific configuration propogates to rabbot config');
+  t.ok(_.find(rabbotConfig.exchanges, ['name', finalGroups.rejectedOnlyCase.exchange.name]), 'No retry rejected exchange gets made');
 });
