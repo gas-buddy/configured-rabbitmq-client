@@ -78,6 +78,7 @@ export default class RabbotClient {
     this.startedCalled = false;
     this.subs = [];
     this.client = rabbot;
+    this.subscriptions = opts.subscriptions;
   }
 
   // Function should recieve a queue message and return a gb-services style context.
@@ -126,6 +127,12 @@ export default class RabbotClient {
 
     rabbot.nackUnhandled();
     rabbot.nackOnError();
+
+    if (typeof this.subscriptions === 'object') {
+      for (const [, sub] of Object.entries(this.subscriptions)) {
+        this.subscribe(sub.queue, sub.type, sub.handler);
+      }
+    }
 
     this.closeSubscription = rabbot.on('closed', () => {
       if (!this.shuttingDown) {

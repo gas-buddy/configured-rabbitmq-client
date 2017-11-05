@@ -11,7 +11,7 @@ export class WrappedMessage {
 
   async ack() {
     try {
-      this.rabbotMessage.ack();
+      await this.rabbotMessage.ack();
     } catch (error) {
       throw error;
     } finally {
@@ -21,7 +21,7 @@ export class WrappedMessage {
 
   async nack() {
     try {
-      this.rabbotMessage.nack();
+      await this.rabbotMessage.nack();
     } catch (error) {
       throw error;
     } finally {
@@ -31,7 +31,7 @@ export class WrappedMessage {
 
   async reject() {
     try {
-      this.rabbotMessage.reject();
+      await this.rabbotMessage.reject();
     } catch (error) {
       throw error;
     } finally {
