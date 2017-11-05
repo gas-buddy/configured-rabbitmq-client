@@ -6,6 +6,7 @@ import {
   normalizeExchangeGroups,
   rabbotConfigFromExchangeGroups,
 } from './exchangeGroups';
+import { WrappedMessage } from './WrappedMessage';
 
 export default class RabbotClient {
   constructor(context, opts) {
@@ -177,7 +178,8 @@ export default class RabbotClient {
   }
 
   async subscribe(queueName, type, handler) {
-    let wrappedHandler = async (message) => {
+    let wrappedHandler = async (rabbotMessage) => {
+      const message = new WrappedMessage(rabbotMessage);
       if (handler.length === 2) {
         const context = this.contextFunction &&
           await this.contextFunction(this.originalContext, message);
@@ -193,7 +195,8 @@ export default class RabbotClient {
     if (exchangeGroup) {
       finalQueueName = exchangeGroup.queue.name;
       if (exchangeGroup.retries) {
-        wrappedHandler = async (message) => {
+        wrappedHandler = async (rabbotMessage) => {
+          const message = new WrappedMessage(rabbotMessage);
           let context;
           try {
             if (handler.length === 2) {
@@ -256,5 +259,9 @@ export default class RabbotClient {
     }
     // Mostly for tests which restart right away, but rabbot is finicky
     return Promise.delay(1000);
+  }
+
+  static get activeMessages() {
+    return WrappedMessage.activeMessages();
   }
 }
