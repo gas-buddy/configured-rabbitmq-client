@@ -1,12 +1,30 @@
 
 const messagesInFlight = new Set();
 
+const CALL_INFO = Symbol('Call Info');
+const CLIENT_INFO = Symbol('Rabbot Client');
+
+function messageComplete(wrapped, eventName) {
+  try { messagesInFlight.delete(wrapped); } catch (_) { /* noop */ }
+  if (wrapped[CLIENT_INFO].listenerCount(eventName)) {
+    wrapped[CLIENT_INFO].emit(eventName, wrapped[CALL_INFO]);
+  }
+  wrapped[CLIENT_INFO].emit('count', messagesInFlight.size);
+}
+
 export class WrappedMessage {
-  constructor(message) {
+  constructor(client, message) {
     const { nack, reject, ack, rabbotMessage, ...rest } = message;
     Object.assign(this, rest);
     this.rabbotMessage = message;
     messagesInFlight.add(this);
+    this[CLIENT_INFO] = client;
+    this[CALL_INFO] = {
+      operationName: 'handleQueueMessage',
+      message,
+    };
+    client.emit('start', this[CALL_INFO]);
+    client.emit('count', messagesInFlight.size);
   }
 
   async ack() {
@@ -15,7 +33,7 @@ export class WrappedMessage {
     } catch (error) {
       throw error;
     } finally {
-      try { messagesInFlight.delete(this); } catch (_) { /* noop */ }
+      messageComplete(this, 'finish');
     }
   }
 
@@ -25,7 +43,7 @@ export class WrappedMessage {
     } catch (error) {
       throw error;
     } finally {
-      try { messagesInFlight.delete(this); } catch (_) { /* noop */ }
+      messageComplete(this, 'error');
     }
   }
 
@@ -35,7 +53,7 @@ export class WrappedMessage {
     } catch (error) {
       throw error;
     } finally {
-      try { messagesInFlight.delete(this); } catch (_) { /* noop */ }
+      messageComplete(this, 'error');
     }
   }
 

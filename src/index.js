@@ -1,3 +1,4 @@
+import { EventEmitter } from 'events';
 import assert from 'assert';
 import rabbot from 'rabbot';
 import path from 'path';
@@ -8,8 +9,9 @@ import {
 } from './exchangeGroups';
 import { WrappedMessage } from './WrappedMessage';
 
-export default class RabbotClient {
+export default class RabbotClient extends EventEmitter {
   constructor(context, opts) {
+    super();
     assert(opts, 'configured-rabbitmq-client must be passed arguments');
     assert(opts.username, 'configured-rabbitmq-client missing username setting');
     assert(opts.password, 'configured-rabbitmq-client missing password setting');
@@ -186,7 +188,7 @@ export default class RabbotClient {
 
   async subscribe(queueName, type, handler) {
     let wrappedHandler = async (rabbotMessage) => {
-      const message = new WrappedMessage(rabbotMessage);
+      const message = new WrappedMessage(this, rabbotMessage);
       if (handler.length === 2) {
         const context = this.contextFunction &&
           await this.contextFunction(this.originalContext, message);
@@ -203,7 +205,7 @@ export default class RabbotClient {
       finalQueueName = exchangeGroup.queue.name;
       if (exchangeGroup.retries) {
         wrappedHandler = async (rabbotMessage) => {
-          const message = new WrappedMessage(rabbotMessage);
+          const message = new WrappedMessage(this, rabbotMessage);
           let context;
           try {
             if (handler.length === 2) {
