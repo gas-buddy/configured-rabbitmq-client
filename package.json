@@ -28,7 +28,7 @@
     "bluebird": "^3.5.0",
     "cross-env": "^5",
     "eslint-config-gasbuddy": "^4",
-    "tap": "^10.7.2",
+    "tap": "^11.0.0",
     "winston": "^2.3.0"
   },
   "dependencies": {
