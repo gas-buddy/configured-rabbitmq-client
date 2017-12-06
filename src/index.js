@@ -274,3 +274,69 @@ export default class RabbotClient extends EventEmitter {
     return WrappedMessage.activeMessages();
   }
 }
+
+export class MockRabbotClient {
+  constructor() {
+    this.subscriptions = {};
+    this.publishMocks = {};
+  }
+
+  async internalPublish(exchange, key, body) {
+    const mock = (this.publishMocks[exchange] || {})[key];
+    if (mock) {
+      await mock(exchange, key, body);
+    } else {
+      this.context.logger.info(`Unmocked messaged published. Exchange: ${exchange} Key: ${key}`);
+    }
+  }
+
+  async publish(...args) {
+    return this.internalPublish(...args);
+  }
+
+  async request(...args) {
+    return this.internalPublish(...args);
+  }
+
+  async start(context) {
+    this.context = context;
+    return this;
+  }
+
+  async subscribe(queueName, key, handler) {
+    this.subscriptions[queueName] = this.subscriptions[queueName] || {};
+    this.subscriptions[queueName][key] = handler;
+  }
+
+  resetPublishMocks() {
+    this.publishMocks = {};
+  }
+
+  async mockPublish(exchange, key, handler) {
+    this.publishMocks[exchange] = this.publishMocks[exchange] || {};
+    this.publishMocks[exchange][key] = handler;
+  }
+
+  async testMessage(context, queueName, key, body, {
+    ack = () => {},
+    nack = () => {},
+    reject = () => {},
+  } = {}) {
+    const handler = (this.subscriptions[queueName] || {})[key];
+    if (!handler) {
+      throw new Error(`No handler for key ${key} on queue ${queueName}`);
+    } else {
+      const message = {
+        body,
+        ack,
+        nack,
+        reject,
+      };
+      if (handler.length === 2) {
+        await handler(context, message);
+      } else {
+        await handler(message);
+      }
+    }
+  }
+}
