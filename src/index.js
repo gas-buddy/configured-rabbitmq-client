@@ -256,6 +256,11 @@ export default class RabbotClient extends EventEmitter {
     this.subs.push([handlerThunk, mq]);
   }
 
+  // eslint-disable-next-line class-methods-use-this
+  metadata() {
+    return WrappedMessage.activeMessages();
+  }
+
   static async gracefulQueueShutdown(q) {
     if (q &&
       q.lastQueue.messages.messages &&

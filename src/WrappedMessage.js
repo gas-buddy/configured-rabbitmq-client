@@ -16,6 +16,7 @@ export class WrappedMessage {
   constructor(client, message) {
     const { nack, reject, ack, rabbotMessage, ...rest } = message;
     Object.assign(this, rest);
+    this.arrivalTime = Date.now();
     this.rabbotMessage = message;
     messagesInFlight.add(this);
     this[CLIENT_INFO] = client;
