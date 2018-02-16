@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "lodash": "^4.17.4",
-    "rabbot": "^1.1.0"
+    "rabbot": "^2.0.0"
   },
   "nyc": {
     "include": [
