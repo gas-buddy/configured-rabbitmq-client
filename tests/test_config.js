@@ -58,7 +58,7 @@ tap.test('test exchange group retry', async (t) => {
   const retryCount = mqConfig.config.exchangeGroups.test.retries;
   t.plan((retryCount + 3) + retryCount);
   const mq = new RabbotClient({ logger: winston }, mqConfig);
-  await mq.start();
+  await mq.start({ logger: winston });
   let counter = 0;
   const errorMessage = 'retry again';
 

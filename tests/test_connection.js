@@ -40,8 +40,8 @@ tap.test('wait for rabbit', async (t) => {
 });
 
 tap.test('test_connection', async (t) => {
-  const mq = new RabbotClient(winston, mqConfig);
-  const client = await mq.start();
+  const mq = new RabbotClient({ logger: winston }, mqConfig);
+  const client = await mq.start({ logger: winston });
   t.ok(client.publish, 'Should have a publish method');
   await mq.stop();
   t.ok(true, 'Should shut down');

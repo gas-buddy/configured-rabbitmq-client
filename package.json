@@ -1,6 +1,6 @@
 {
   "name": "@gasbuddy/configured-rabbitmq-client",
-  "version": "3.2.1",
+  "version": "4.0.0",
   "description": "A configuration driven RabbitMQ client",
   "main": "build/index.js",
   "scripts": {

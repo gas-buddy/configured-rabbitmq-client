@@ -62,12 +62,10 @@ export default class RabbotClient extends EventEmitter {
     assert(opts.username, 'configured-rabbitmq-client missing username setting');
     assert(opts.password, 'configured-rabbitmq-client missing password setting');
 
-    if (context && context.logger && context.logger.info) {
-      context.logger.info('Initializing RabbitMQ client', {
-        user: opts.username,
-        host: opts.hostname || 'rabbitmq',
-      });
-    }
+    context.logger.info('Initializing RabbitMQ client', {
+      user: opts.username,
+      host: opts.hostname || 'rabbitmq',
+    });
     const mqConnectionConfig = {
       // In our usage, we've found that a short timeout causes trouble
       // on startup with spurious connection errors just because the box
@@ -83,9 +81,7 @@ export default class RabbotClient extends EventEmitter {
 
     // Event handlers need to be cleaned up afterwards...
     this.connSubscription = rabbot.on('connected', () => {
-      if (context && context.logger && context.logger.info) {
-        context.logger.info('RabbitMQ connection established.');
-      }
+      context.logger.info('RabbitMQ connection established.');
     });
 
     this[ORIGINAL_ARGS] = { opts, mqConnectionConfig };
@@ -188,24 +184,18 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
 
     this.closeSubscription = rabbot.on('closed', () => {
       if (!this.shuttingDown) {
-        if (context && context.logger && context.logger.error) {
-          context.logger.error('RabbitMQ connection was closed.');
-        }
+        context.logger.error('RabbitMQ connection was closed.');
       }
     });
     this.unreachSubscription = rabbot.on('unreachable', () => {
       // TODO shutdown the process?
-      if (context && context.logger && context.logger.error) {
-        context.logger.error('RabbitMQ connection has failed permanently.');
-      }
+      context.logger.error('RabbitMQ connection has failed permanently.');
     });
     this.failSubscription = rabbot.onReturned('failed', (e) => {
-      if (context && context.logger && context.logger.error) {
-        context.logger.error('RabbitMQ connection has failed.', {
-          error: e.message,
-          stack: e.stack,
-        });
-      }
+      context.logger.error('RabbitMQ connection has failed.', {
+        error: e.message,
+        stack: e.stack,
+      });
     });
 
     return this;
@@ -213,9 +203,7 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
 
   async stop(context) {
     assert(this.startCalled, 'stop called multiple times on configured-rabbitmq-client instance');
-    if (context && context.logger && context.logger.info) {
-      context.logger.info('Closing RabbitMQ connection');
-    }
+    context.logger.info('Closing RabbitMQ connection');
     await Promise.all(this.subs.map((s) => {
       s[0].remove();
       return RabbotClient.gracefulQueueShutdown(s[1]);
