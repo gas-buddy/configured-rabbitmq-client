@@ -11,9 +11,9 @@ const mqConfig = {
 };
 
 tap.test('wait for rabbit', async (t) => {
+  // eslint-disable-next-line no-await-in-loop
   for (let i = 0; i < 10; i += 1) {
     let connected = false;
-    // eslint-disable-next-line no-await-in-loop
     await new Promise((accept) => {
       const s = new net.Socket();
       s.once('error', () => {

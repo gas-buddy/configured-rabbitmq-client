@@ -9,6 +9,52 @@ import {
 } from './exchangeGroups';
 import { WrappedMessage } from './WrappedMessage';
 
+const exchangeErrorRE = /Failed to create exchange '(.*)' on connection 'default'/;
+const ORIGINAL_ARGS = Symbol('Original rabbitmq options');
+
+function isDev() {
+  return process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+}
+
+function finalConfigFromConfig(context, opts, mqConnectionConfig) {
+  let exchangeGroups = (opts.config && opts.config.exchangeGroups) || {};
+  exchangeGroups = normalizeExchangeGroups(exchangeGroups);
+
+  const exchangeGroupConfig = rabbotConfigFromExchangeGroups(exchangeGroups);
+  const finalConfig = Object.assign({}, opts.config);
+  delete finalConfig.exchangeGroups;
+
+  finalConfig.exchanges = (finalConfig.exchanges || []).concat(exchangeGroupConfig.exchanges);
+  finalConfig.queues = (finalConfig.queues || []).concat(exchangeGroupConfig.queues);
+  finalConfig.bindings = (finalConfig.bindings || []).concat(exchangeGroupConfig.bindings);
+  finalConfig.connection = Object.assign({}, finalConfig.connection, mqConnectionConfig);
+
+  let dependencies = (opts.config && opts.config.dependencies) || [];
+
+  const dependencyAttribs = {};
+  // Create dependencies in test mode.
+  if (process.env.NODE_ENV !== 'test') {
+    dependencyAttribs.passive = true;
+  }
+  dependencies = _.map(dependencies, d => Object.assign({ name: d }, dependencyAttribs));
+
+  finalConfig.exchanges = finalConfig.exchanges.concat(dependencies);
+
+  if (opts.logging) {
+    finalConfig.logging = {
+      adapters: {
+        [path.join(__dirname, 'whistlewinston.js')]: {
+          ...opts.logging,
+          context,
+        },
+      },
+    };
+  }
+
+  finalConfig.exchangeGroups = exchangeGroups;
+  return finalConfig;
+}
+
 export default class RabbotClient extends EventEmitter {
   constructor(context, opts) {
     super();
@@ -42,39 +88,10 @@ export default class RabbotClient extends EventEmitter {
       }
     });
 
-    this.exchangeGroups = (opts.config && opts.config.exchangeGroups) || {};
-    this.exchangeGroups = normalizeExchangeGroups(this.exchangeGroups);
-    const exchangeGroupConfig = rabbotConfigFromExchangeGroups(this.exchangeGroups);
-    const finalConfig = Object.assign({}, opts.config);
-    delete finalConfig.exchangeGroups;
-    finalConfig.exchanges = (finalConfig.exchanges || []).concat(exchangeGroupConfig.exchanges);
-    finalConfig.queues = (finalConfig.queues || []).concat(exchangeGroupConfig.queues);
-    finalConfig.bindings = (finalConfig.bindings || []).concat(exchangeGroupConfig.bindings);
-    finalConfig.connection = Object.assign({}, finalConfig.connection, mqConnectionConfig);
-
-    let dependencies = (opts.config && opts.config.dependencies) || [];
-
-    const dependencyAttribs = {};
-    // Create dependencies in test mode.
-    if (process.env.NODE_ENV !== 'test') {
-      dependencyAttribs.passive = true;
-    }
-    dependencies = _.map(dependencies, d => Object.assign({ name: d }, dependencyAttribs));
-
-    finalConfig.exchanges = finalConfig.exchanges.concat(dependencies);
-
-    if (opts.logging) {
-      finalConfig.logging = {
-        adapters: {
-          [path.join(__dirname, 'whistlewinston.js')]: {
-            ...opts.logging,
-            context,
-          },
-        },
-      };
-    }
-
-    this.finalConfig = finalConfig;
+    this[ORIGINAL_ARGS] = { opts, mqConnectionConfig };
+    this.finalConfig = finalConfigFromConfig(context, opts, mqConnectionConfig);
+    this.exchangeGroups = this.finalConfig.exchangeGroups;
+    delete this.finalConfig.exchangeGroups;
     this.originalContext = context;
     this.contextFunction = opts.contextFunction;
     this.startedCalled = false;
@@ -98,26 +115,59 @@ export default class RabbotClient extends EventEmitter {
     this.startCalled = true;
 
     const maxRetries = 5;
+    // eslint-disable-next-line no-await-in-loop
     for (let retries = maxRetries; retries >= 0; retries -= 1) {
       try {
-        // eslint-disable-next-line no-await-in-loop
+        context.logger.info('Configuring rabbot');
         await rabbot.configure(this.finalConfig);
         break;
       } catch (stringError) {
+        if (process.env.MQ_MAKE_EXCHANGES && exchangeErrorRE.test(stringError.message)) {
+          const [, failedQueue] = stringError.message.match(exchangeErrorRE);
+          const { opts, mqConnectionConfig } = this[ORIGINAL_ARGS];
+          _.pull(opts.config.dependencies, failedQueue);
+          opts.config.exchangeGroups = opts.config.exchangeGroups || {};
+          opts.config.exchangeGroups[failedQueue] = { keys: '*' };
+          this.finalConfig = finalConfigFromConfig(context, opts, mqConnectionConfig);
+          this.exchangeGroups = this.finalConfig.exchangeGroups;
+          delete this.finalConfig.exchangeGroups;
+          retries += 1; // this one doesn't count
+
+          // Unforunately, rabbot seems to need time to sort its sh** out.
+          context.logger.info('Queue setup failed. Waiting 2.5s then creating queue', { name: failedQueue });
+          await Promise.delay(2500);
+        }
         if (retries) {
-          context.logger.warn(`Queue configuration failed, retrying ${retries} more times`, stringError);
+          // This comparison basically is only false when we've done the auto-create thing above
+          if (retries <= maxRetries) {
+            context.logger.warn(`Queue configuration failed, retrying ${retries} more times`, stringError);
+            if (isDev() && exchangeErrorRE.test(stringError)) {
+              context.logger.info(`
+*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*
+
+Exchanges are missing. Typically this comes from dependent services which you are not
+running. In order to create these queues with default characteristics, set
+the MQ_MAKE_EXCHANGES environment variable and restart.
+
+*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*-*`);
+            }
+          }
+
           try {
             // eslint-disable-next-line no-await-in-loop
             await rabbot.shutdown();
             rabbot.reset();
+            context.logger.info('Rabbot cleanup complete');
           } catch (inner) {
             context.logger.warn('Rabbot cleanup failed', {
               error: inner.message,
               stack: inner.stack,
             });
           }
-          // eslint-disable-next-line no-await-in-loop
-          await Promise.delay((1 + (maxRetries - retries)) * 2000);
+
+          if (retries <= maxRetries) {
+            await Promise.delay((1 + (maxRetries - retries)) * 2000);
+          }
         } else {
           if (typeof stringError === 'string') {
             throw new Error(stringError);
@@ -325,9 +375,9 @@ export class MockRabbotClient {
   }
 
   async testMessage(context, queueName, key, body, {
-    ack = () => {},
-    nack = () => {},
-    reject = () => {},
+    ack = () => { },
+    nack = () => { },
+    reject = () => { },
   } = {}) {
     const handler = (this.subscriptions[queueName] || {})[key];
     if (!handler) {
