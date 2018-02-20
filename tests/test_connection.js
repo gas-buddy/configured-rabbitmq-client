@@ -11,9 +11,9 @@ const mqConfig = {
 };
 
 tap.test('wait for rabbit', async (t) => {
+  // eslint-disable-next-line no-await-in-loop
   for (let i = 0; i < 10; i += 1) {
     let connected = false;
-    // eslint-disable-next-line no-await-in-loop
     await new Promise((accept) => {
       const s = new net.Socket();
       s.once('error', () => {
@@ -40,9 +40,9 @@ tap.test('wait for rabbit', async (t) => {
 });
 
 tap.test('test_connection', async (t) => {
-  const mq = new RabbotClient(winston, mqConfig);
-  const client = await mq.start();
+  const mq = new RabbotClient({ logger: winston }, mqConfig);
+  const client = await mq.start({ logger: winston });
   t.ok(client.publish, 'Should have a publish method');
-  await mq.stop();
+  await mq.stop({ logger: winston });
   t.ok(true, 'Should shut down');
 });

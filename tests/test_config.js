@@ -26,9 +26,9 @@ const mqConfig = {
 };
 
 tap.test('wait for rabbit', async (t) => {
+  // eslint-disable-next-line no-await-in-loop
   for (let i = 0; i < 10; i += 1) {
     let connected = false;
-    // eslint-disable-next-line no-await-in-loop
     await new Promise((accept) => {
       const s = new net.Socket();
       s.once('error', () => {
@@ -58,7 +58,7 @@ tap.test('test exchange group retry', async (t) => {
   const retryCount = mqConfig.config.exchangeGroups.test.retries;
   t.plan((retryCount + 3) + retryCount);
   const mq = new RabbotClient({ logger: winston }, mqConfig);
-  await mq.start();
+  await mq.start({ logger: winston });
   let counter = 0;
   const errorMessage = 'retry again';
 
@@ -81,6 +81,6 @@ tap.test('test exchange group retry', async (t) => {
     await mq.publish('test', 'testkey', {});
   }).then(async () => {
     t.equal(RabbotClient.activeMessages.size, 0, 'Should have 0 active message');
-    await mq.stop();
+    await mq.stop({ logger: winston });
   });
 });
