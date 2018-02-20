@@ -43,6 +43,6 @@ tap.test('test_connection', async (t) => {
   const mq = new RabbotClient({ logger: winston }, mqConfig);
   const client = await mq.start({ logger: winston });
   t.ok(client.publish, 'Should have a publish method');
-  await mq.stop();
+  await mq.stop({ logger: winston });
   t.ok(true, 'Should shut down');
 });

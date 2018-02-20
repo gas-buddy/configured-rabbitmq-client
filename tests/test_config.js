@@ -81,6 +81,6 @@ tap.test('test exchange group retry', async (t) => {
     await mq.publish('test', 'testkey', {});
   }).then(async () => {
     t.equal(RabbotClient.activeMessages.size, 0, 'Should have 0 active message');
-    await mq.stop();
+    await mq.stop({ logger: winston });
   });
 });
