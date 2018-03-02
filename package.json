@@ -1,6 +1,6 @@
 {
   "name": "@gasbuddy/configured-rabbitmq-client",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "description": "A configuration driven RabbitMQ client",
   "main": "build/index.js",
   "scripts": {
@@ -24,7 +24,7 @@
   "license": "MIT",
   "devDependencies": {
     "babel-cli": "^6.26.0",
-    "babel-preset-gasbuddy": "^3.1.0",
+    "babel-preset-gasbuddy": "^3.3.0",
     "bluebird": "^3.5.1",
     "cross-env": "^5.1.3",
     "eslint-config-gasbuddy": "^4.1.0",
@@ -33,7 +33,7 @@
   },
   "dependencies": {
     "lodash": "^4.17.5",
-    "rabbot": "^1.1.0"
+    "rabbot": "^2.1.0"
   },
   "nyc": {
     "include": [
