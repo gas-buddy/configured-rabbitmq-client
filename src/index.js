@@ -340,6 +340,18 @@ export class MockRabbotClient {
     return this.internalPublish(...args);
   }
 
+  async bulkPublish(bulk) {
+    if (Array.isArray(bulk)) {
+      return Promise.all(
+        bulk.map(({ type, body, exchange }) => this.internalPublish(exchange, type, body)),
+      );
+    }
+    return Promise.all(
+      Object.entries(bulk)
+        .map(([exchange, { type, body }]) => this.internalPublish(exchange, type, body)),
+    );
+  }
+
   async start(context) {
     this.context = context;
     return this;
