@@ -1,13 +1,13 @@
 import { EventEmitter } from 'events';
 import assert from 'assert';
 import rabbot from 'rabbot';
-import path from 'path';
 import _ from 'lodash';
 import {
   normalizeExchangeGroups,
   rabbotConfigFromExchangeGroups,
 } from './exchangeGroups';
 import { WrappedMessage } from './WrappedMessage';
+import boleWinston from './boleWinston';
 
 const exchangeErrorRE = /Failed to create exchange '(.*)' on connection 'default'/;
 const ORIGINAL_ARGS = Symbol('Original rabbitmq options');
@@ -41,14 +41,7 @@ function finalConfigFromConfig(context, opts, mqConnectionConfig) {
   finalConfig.exchanges = finalConfig.exchanges.concat(dependencies);
 
   if (opts.logging) {
-    finalConfig.logging = {
-      adapters: {
-        [path.join(__dirname, 'whistlewinston.js')]: {
-          ...opts.logging,
-          context,
-        },
-      },
-    };
+    rabbot.log(boleWinston(context.logger, Array.isArray(opts.logging) ? opts.logging : undefined));
   }
 
   finalConfig.exchangeGroups = exchangeGroups;
@@ -104,6 +97,10 @@ export default class RabbotClient extends EventEmitter {
 
   request(...args) {
     return this.client.request(...args);
+  }
+
+  bulkPublish(...args) {
+    return this.client.bulkPublish(...args);
   }
 
   async start(context) {
@@ -341,6 +338,18 @@ export class MockRabbotClient {
 
   async request(...args) {
     return this.internalPublish(...args);
+  }
+
+  async bulkPublish(bulk) {
+    if (Array.isArray(bulk)) {
+      return Promise.all(
+        bulk.map(({ type, body, exchange }) => this.internalPublish(exchange, type, body)),
+      );
+    }
+    return Promise.all(
+      Object.entries(bulk)
+        .map(([exchange, { type, body }]) => this.internalPublish(exchange, type, body)),
+    );
   }
 
   async start(context) {
