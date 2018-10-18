@@ -1,6 +1,5 @@
 import tap from 'tap';
 import net from 'net';
-import winston from 'winston';
 import RabbotClient from '../src/index';
 
 const mqConfig = {
@@ -10,10 +9,12 @@ const mqConfig = {
   password: process.env.RABBIT_PASSWORD || 'guest',
 };
 
+const ctx = { logger: console };
+
 tap.test('wait for rabbit', async (t) => {
-  // eslint-disable-next-line no-await-in-loop
   for (let i = 0; i < 10; i += 1) {
     let connected = false;
+    // eslint-disable-next-line no-await-in-loop
     await new Promise((accept) => {
       const s = new net.Socket();
       s.once('error', () => {
@@ -40,9 +41,9 @@ tap.test('wait for rabbit', async (t) => {
 });
 
 tap.test('test_connection', async (t) => {
-  const mq = new RabbotClient({ logger: winston }, mqConfig);
-  const client = await mq.start({ logger: winston });
+  const mq = new RabbotClient(ctx, mqConfig);
+  const client = await mq.start(ctx);
   t.ok(client.publish, 'Should have a publish method');
-  await mq.stop({ logger: winston });
+  await mq.stop(ctx);
   t.ok(true, 'Should shut down');
 });

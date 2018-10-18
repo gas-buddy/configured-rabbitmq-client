@@ -7,13 +7,17 @@ import {
   rabbotConfigFromExchangeGroups,
 } from './exchangeGroups';
 import { WrappedMessage } from './WrappedMessage';
-import boleWinston from './boleWinston';
+import boleLogger from './boleLogger';
 
 const exchangeErrorRE = /Failed to create exchange '(.*)' on connection 'default'/;
 const ORIGINAL_ARGS = Symbol('Original rabbitmq options');
 
 function isDev() {
   return process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+}
+
+async function delay(ms) {
+  return new Promise(accept => setTimeout(accept, ms));
 }
 
 function finalConfigFromConfig(context, opts, mqConnectionConfig) {
@@ -41,7 +45,7 @@ function finalConfigFromConfig(context, opts, mqConnectionConfig) {
   finalConfig.exchanges = finalConfig.exchanges.concat(dependencies);
 
   if (opts.logging) {
-    rabbot.log(boleWinston(context.logger, Array.isArray(opts.logging) ? opts.logging : undefined));
+    rabbot.log(boleLogger(context.logger, Array.isArray(opts.logging) ? opts.logging : undefined));
   }
 
   finalConfig.exchangeGroups = exchangeGroups;
@@ -108,10 +112,10 @@ export default class RabbotClient extends EventEmitter {
     this.startCalled = true;
 
     const maxRetries = 5;
-    // eslint-disable-next-line no-await-in-loop
     for (let retries = maxRetries; retries >= 0; retries -= 1) {
       try {
         context.logger.info('Configuring rabbot');
+        // eslint-disable-next-line no-await-in-loop
         await rabbot.configure(this.finalConfig);
         break;
       } catch (stringError) {
@@ -128,7 +132,8 @@ export default class RabbotClient extends EventEmitter {
 
           // Unforunately, rabbot seems to need time to sort its sh** out.
           context.logger.info('Queue setup failed. Waiting 2.5s then creating queue', { name: failedQueue });
-          await Promise.delay(2500);
+          // eslint-disable-next-line no-await-in-loop
+          await delay(2500);
         }
         if (retries) {
           // This comparison basically is only false when we've done the auto-create thing above
@@ -159,7 +164,8 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
           }
 
           if (retries <= maxRetries) {
-            await Promise.delay((1 + (maxRetries - retries)) * 2000);
+            // eslint-disable-next-line no-await-in-loop
+            await delay((1 + (maxRetries - retries)) * 2000);
           }
         } else {
           if (typeof stringError === 'string') {
@@ -225,8 +231,8 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
     let wrappedHandler = async (rabbotMessage) => {
       const message = new WrappedMessage(this, rabbotMessage);
       if (handler.length === 2) {
-        const context = this.contextFunction &&
-          await this.contextFunction(this.originalContext, message);
+        const context = this.contextFunction
+          && await this.contextFunction(this.originalContext, message);
         await handler(context, message);
       } else {
         await handler(message);
@@ -244,8 +250,8 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
           let context;
           try {
             if (handler.length === 2) {
-              context = this.contextFunction &&
-                await this.contextFunction(this.originalContext, message);
+              context = this.contextFunction
+                && await this.contextFunction(this.originalContext, message);
               await handler(context, message);
             } else {
               await handler(message);
@@ -299,9 +305,7 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
   }
 
   static async gracefulQueueShutdown(q) {
-    if (q &&
-      q.lastQueue.messages.messages &&
-      q.lastQueue.messages.messages.length) {
+    if (q?.lastQueue?.messages?.messages?.length) {
       return new Promise((accept) => {
         q.lastQueue.messages
           .on('empty', accept)
@@ -309,7 +313,7 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
       });
     }
     // Mostly for tests which restart right away, but rabbot is finicky
-    return Promise.delay(1000);
+    return delay(1000);
   }
 
   static get activeMessages() {
