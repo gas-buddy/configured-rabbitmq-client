@@ -291,7 +291,7 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
       }
     }
 
-    const handlerThunk = rabbot.handle(type, wrappedHandler);
+    const handlerThunk = rabbot.handle(type, wrappedHandler, finalQueueName);
     const mq = rabbot.getQueue(finalQueueName);
     mq.subscribe(false);
     this.subs.push([handlerThunk, mq]);
