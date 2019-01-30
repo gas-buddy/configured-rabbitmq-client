@@ -59,9 +59,11 @@ export default class RabbotClient extends EventEmitter {
     assert(opts.username, 'configured-rabbitmq-client missing username setting');
     assert(opts.password, 'configured-rabbitmq-client missing password setting');
 
+    const hostname = Array.isArray(opts.hostname) ? opts.hostname.join(',') : opts.hostname;
+
     context.logger.info('Initializing RabbitMQ client', {
       user: opts.username,
-      host: opts.hostname || 'rabbitmq',
+      host: hostname || 'rabbitmq',
     });
     const mqConnectionConfig = {
       // In our usage, we've found that a short timeout causes trouble
@@ -71,7 +73,7 @@ export default class RabbotClient extends EventEmitter {
       ...opts.connectionOptions,
       user: opts.username,
       pass: opts.password,
-      host: opts.hostname || 'rabbitmq',
+      host: hostname || 'rabbitmq',
       port: opts.port || 5672,
       vhost: opts.basePath || '/',
     };
