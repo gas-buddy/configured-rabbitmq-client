@@ -47,3 +47,12 @@ tap.test('test_connection', async (t) => {
   await mq.stop(ctx);
   t.ok(true, 'Should shut down');
 });
+
+tap.test('test_connection with array hostname', async (t) => {
+  const config = { ...mqConfig, hostname: [mqConfig.hostname, mqConfig.hostname] };
+  const mq = new RabbotClient(ctx, config);
+  const client = await mq.start(ctx);
+  t.ok(client.publish, 'Should have a publish method');
+  await mq.stop(ctx);
+  t.ok(true, 'Should shut down');
+});
