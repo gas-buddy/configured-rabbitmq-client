@@ -228,6 +228,16 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
   }
 
   async subscribe(queueName, type, handler) {
+    if (process.env.DISABLE_RABBITMQ_SUBSCRIPTIONS === 'true') {
+      return;
+    }
+    if (process.env.DISABLE_RABBITMQ_SUBSCRIPTIONS) {
+      const disabled = process.env.DISABLE_RABBITMQ_SUBSCRIPTIONS.split(',');
+      if (disabled.includes(queueName) || disabled.includes(`${queueName}$${type}`)) {
+        return;
+      }
+    }
+
     let wrappedHandler = async (rabbotMessage) => {
       const message = new WrappedMessage(this, rabbotMessage);
       if (handler.length === 2) {
