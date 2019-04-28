@@ -17,7 +17,9 @@ build:
         export RABBIT_HOST=$RABBITMQ_PORT_5672_TCP_ADDR
         export RABBIT_PORT=$RABBITMQ_PORT_5672_TCP_PORT
 
-    - npm-test
+    - script:
+      name: test
+      code: npm run cover
 
     - script:
       name: build
