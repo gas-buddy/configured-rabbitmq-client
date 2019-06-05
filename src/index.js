@@ -68,6 +68,9 @@ export default class RabbotClient extends EventEmitter {
       // on startup with spurious connection errors just because the box
       // is busy. So we default to a higher initial timeout
       timeout: 15000,
+      // We don't typically use reply queues and they tend to cruft up
+      // the server, so disable by default
+      replyQueue: false,
       ...opts.connectionOptions,
       user: opts.username,
       pass: opts.password,
@@ -302,7 +305,12 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
     }
 
     const handlerThunk = rabbot.handle(type, wrappedHandler, finalQueueName);
-    const mq = rabbot.getQueue(finalQueueName);
+    let mq = rabbot.getQueue(finalQueueName);
+    if (!mq) {
+      // Let's give it a try.
+      mq = rabbot.getQueue(`${finalQueueName}.q`);
+    }
+    assert(mq, `Specified queue (${finalQueueName}) does not exist`);
     mq.subscribe(false);
     this.subs.push([handlerThunk, mq]);
   }
