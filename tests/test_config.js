@@ -133,9 +133,6 @@ tap.test('test delivery_mode pass thru', async (t) => {
       retries: retryCount,
       retryDelay: 100,
       persistent: true,
-      rejectedQueue: {
-        xQueueMode: 'lazy',
-      },
       keys: 'one',
     },
   }));

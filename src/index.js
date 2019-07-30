@@ -230,13 +230,13 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
     this.startCalled = false;
   }
 
-  async subscribe(queueName, type, handler) {
+  async subscribe(exchangeGroupKey, type, handler) {
     if (process.env.DISABLE_RABBITMQ_SUBSCRIPTIONS === 'true') {
       return;
     }
     if (process.env.DISABLE_RABBITMQ_SUBSCRIPTIONS) {
       const disabled = process.env.DISABLE_RABBITMQ_SUBSCRIPTIONS.split(',');
-      if (disabled.includes(queueName) || disabled.includes(`${queueName}$${type}`)) {
+      if (disabled.includes(exchangeGroupKey) || disabled.includes(`${exchangeGroupKey}$${type}`)) {
         return;
       }
     }
@@ -252,8 +252,8 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
       }
     };
 
-    let finalQueueName = queueName;
-    const exchangeGroup = this.exchangeGroups[queueName];
+    let finalQueueName = exchangeGroupKey;
+    const exchangeGroup = this.exchangeGroups[exchangeGroupKey];
 
     if (exchangeGroup) {
       finalQueueName = exchangeGroup.queue.name;
@@ -303,7 +303,7 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
         };
       }
     } else {
-      context.gb.logger.error(`SubscriptionFailed: No exchangeGroup found with the name ${queueName}`);
+      context.gb.logger.error(`SubscriptionFailed: No exchangeGroup found with the name ${exchangeGroupKey}`);
     }
 
     const handlerThunk = rabbot.handle(type, wrappedHandler, finalQueueName);
