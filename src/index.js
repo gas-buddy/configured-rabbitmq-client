@@ -302,6 +302,8 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
           }
         };
       }
+    } else {
+      context.gb.logger.error(`SubscriptionFailed: No exchangeGroup found with the name ${finalQueueName}`);
     }
 
     const handlerThunk = rabbot.handle(type, wrappedHandler, finalQueueName);
