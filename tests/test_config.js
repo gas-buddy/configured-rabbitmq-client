@@ -145,11 +145,14 @@ tap.test('test delivery_mode pass thru', async (t) => {
         } else {
           t.strictEqual(message.properties.deliveryMode, 2, 'Persistent message retries should retain deliveryMode=2');
         }
-
-        if (message.properties.headers.retryCount === retryCount) {
-          setTimeout(accept, 500);
-        }
         throw new Error('error');
+      });
+
+    await mq.subscribe('persistent.rejected.q', 'one',
+      async (context, message) => {
+        t.strictEqual(message.properties.deliveryMode, 2, 'Rejected persistent message should retain deliveryMode=2');
+        message.ack();
+        accept();
       });
     await mq.publish('persistent', 'one', {});
   });
