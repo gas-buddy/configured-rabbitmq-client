@@ -12,15 +12,15 @@ const queueDefaults = {
   noAck: false,
 };
 
-function groupFromInput(param, defaultName) {
+function groupFromInput(param, { name, persistent }) {
   let returnVal = {};
   if (_.isString(param)) {
     returnVal = { name: param };
   } else if (_.isObject(param)) {
     returnVal = param;
   }
-
-  returnVal.name = returnVal.name || defaultName;
+  returnVal.name = returnVal.name || name;
+  returnVal.persistent = returnVal.persistent || persistent;
   return returnVal;
 }
 
@@ -35,20 +35,21 @@ function normalizeExchangeGroup(key, group) {
     retries: _.isNumber(group.retries) ? group.retries : 5,
     keys: group.keys,
   };
+  const persistent = group.persistent || false;
 
-  normalized.exchange = groupFromInput(group.exchange, key);
+  normalized.exchange = groupFromInput(group.exchange, { name: key, persistent });
   const exchangeName = normalized.exchange.name;
 
-  normalized.queue = groupFromInput(group.queue, `${exchangeName}.q`);
+  normalized.queue = groupFromInput(group.queue, { name: `${exchangeName}.q` });
 
   if (normalized.retries) {
-    normalized.retryExchange = groupFromInput(group.retryExchange, `${exchangeName}.retry`);
-    normalized.retryQueue = groupFromInput(group.retryQueue, `${normalized.retryExchange.name}.q`);
+    normalized.retryExchange = groupFromInput(group.retryExchange, { name: `${exchangeName}.retry`, persistent });
+    normalized.retryQueue = groupFromInput(group.retryQueue, { name: `${normalized.retryExchange.name}.q` });
   }
 
   if (normalized.retries || group.rejectedExchange || group.rejectedQueue) {
-    normalized.rejectedExchange = groupFromInput(group.rejectedExchange, `${exchangeName}.rejected`);
-    normalized.rejectedQueue = groupFromInput(group.rejectedQueue, `${normalized.rejectedExchange.name}.q`);
+    normalized.rejectedExchange = groupFromInput(group.rejectedExchange, { name: `${exchangeName}.rejected`, persistent });
+    normalized.rejectedQueue = groupFromInput(group.rejectedQueue, { name: `${normalized.rejectedExchange.name}.q` });
   }
 
 

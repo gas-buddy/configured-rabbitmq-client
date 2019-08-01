@@ -230,13 +230,13 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
     this.startCalled = false;
   }
 
-  async subscribe(queueName, type, handler) {
+  async subscribe(exchangeGroupOrQueue, type, handler) {
     if (process.env.DISABLE_RABBITMQ_SUBSCRIPTIONS === 'true') {
       return;
     }
     if (process.env.DISABLE_RABBITMQ_SUBSCRIPTIONS) {
       const disabled = process.env.DISABLE_RABBITMQ_SUBSCRIPTIONS.split(',');
-      if (disabled.includes(queueName) || disabled.includes(`${queueName}$${type}`)) {
+      if (disabled.includes(exchangeGroupOrQueue) || disabled.includes(`${exchangeGroupOrQueue}$${type}`)) {
         return;
       }
     }
@@ -252,8 +252,8 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
       }
     };
 
-    let finalQueueName = queueName;
-    const exchangeGroup = this.exchangeGroups[queueName];
+    let finalQueueName = exchangeGroupOrQueue;
+    const exchangeGroup = this.exchangeGroups[exchangeGroupOrQueue];
 
     if (exchangeGroup) {
       finalQueueName = exchangeGroup.queue.name;

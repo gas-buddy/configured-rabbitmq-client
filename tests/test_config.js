@@ -125,3 +125,37 @@ tap.test('test routing key reuse', async (t) => {
   t.strictEqual(receivedTwo, 2, 'Should have received exactly two messages on the two handler.');
   await mq.stop(ctx);
 });
+
+tap.test('test delivery_mode pass thru', async (t) => {
+  const retryCount = 2;
+  const mq = new RabbotClient(ctx, configWithExchangeGroups({
+    persistent: {
+      retries: retryCount,
+      retryDelay: 100,
+      persistent: true,
+      keys: 'one',
+    },
+  }));
+  await mq.start(ctx);
+  await new Promise(async (accept) => {
+    await mq.subscribe('persistent', 'one',
+      async (context, message) => {
+        if (!message.properties.headers.retryCount) {
+          t.strictEqual(message.properties.deliveryMode, 2, 'Persistent message should have deliveryMode=2');
+        } else {
+          t.strictEqual(message.properties.deliveryMode, 2, 'Persistent message retries should retain deliveryMode=2');
+        }
+        throw new Error('error');
+      });
+
+    await mq.subscribe('persistent.rejected.q', 'one',
+      async (context, message) => {
+        t.strictEqual(message.properties.deliveryMode, 2, 'Rejected persistent message should retain deliveryMode=2');
+        message.ack();
+        accept();
+      });
+    await mq.publish('persistent', 'one', {});
+  });
+  t.equal(RabbotClient.activeMessages.size, 0, 'Should have 0 active message');
+  await mq.stop(ctx);
+});
