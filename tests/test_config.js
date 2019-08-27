@@ -133,6 +133,7 @@ tap.test('test delivery_mode pass thru', async (t) => {
       retries: retryCount,
       retryDelay: 100,
       persistent: true,
+      perMessageTtl: true,
       keys: 'one',
     },
   }));
@@ -148,14 +149,20 @@ tap.test('test delivery_mode pass thru', async (t) => {
         throw new Error('error');
       });
 
+    const failTimeout = setTimeout(() => {
+      t.ok(false, 'Should have a message in the rejected queue after 5s');
+      accept();
+    }, 5000);
     await mq.subscribe('persistent.rejected.q', 'one',
       async (context, message) => {
         t.strictEqual(message.properties.deliveryMode, 2, 'Rejected persistent message should retain deliveryMode=2');
         message.ack();
+        clearTimeout(failTimeout);
         accept();
       });
     await mq.publish('persistent', 'one', {});
   });
   t.equal(RabbotClient.activeMessages.size, 0, 'Should have 0 active message');
+  await bluebird.delay(1000);
   await mq.stop(ctx);
 });
