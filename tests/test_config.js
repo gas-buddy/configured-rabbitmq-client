@@ -169,6 +169,5 @@ tap.test('test delivery_mode pass thru', async (t) => {
     await mq.publish('persistent', 'one', {});
   });
   t.equal(RabbotClient.activeMessages.size, 0, 'Should have 0 active message');
-  await bluebird.delay(1000);
   await mq.stop(ctx);
 });

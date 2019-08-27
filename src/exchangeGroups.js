@@ -54,7 +54,6 @@ function normalizeExchangeGroup(key, group) {
     normalized.rejectedQueue = groupFromInput(group.rejectedQueue, { name: `${normalized.rejectedExchange.name}.q` });
   }
 
-
   return normalized;
 }
 
