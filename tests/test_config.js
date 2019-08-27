@@ -128,24 +128,30 @@ tap.test('test routing key reuse', async (t) => {
 
 tap.test('test delivery_mode pass thru', async (t) => {
   const retryCount = 2;
+  const retryDelay = 380;
   const mq = new RabbotClient(ctx, configWithExchangeGroups({
     persistent: {
       retries: retryCount,
-      retryDelay: 100,
+      retryDelay,
       persistent: true,
       perMessageTtl: true,
       keys: 'one',
     },
   }));
   await mq.start(ctx);
+  let lastMsgDelivery = null;
   await new Promise(async (accept) => {
     await mq.subscribe('persistent', 'one',
       async (context, message) => {
+        const deliveryTime = (new Date()).getTime();
         if (!message.properties.headers.retryCount) {
           t.strictEqual(message.properties.deliveryMode, 2, 'Persistent message should have deliveryMode=2');
         } else {
+          const deliveryDelay = deliveryTime - lastMsgDelivery;
+          t.ok(deliveryDelay >= retryDelay && deliveryDelay < retryDelay + 10, 'Retry delivery should respect retryDelay within a margin of 10ms');
           t.strictEqual(message.properties.deliveryMode, 2, 'Persistent message retries should retain deliveryMode=2');
         }
+        lastMsgDelivery = deliveryTime;
         throw new Error('error');
       });
 
