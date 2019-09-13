@@ -196,6 +196,7 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
     this.unreachSubscription = rabbot.on('unreachable', () => {
       // TODO shutdown the process?
       context.logger.error('RabbitMQ connection has failed permanently.');
+      this.emit('unreachable');
     });
     this.failSubscription = rabbot.onReturned('failed', (e) => {
       context.logger.error('RabbitMQ connection has failed.', {
@@ -345,7 +346,13 @@ export class MockRabbotClient {
     this.publishMocks = {};
   }
 
-  async internalPublish(exchange, key, body) {
+  async internalPublish(exchange, keyOrOptions, maybeBody) {
+    let key = keyOrOptions;
+    let body = maybeBody;
+    if (typeof key !== 'string') {
+      key = keyOrOptions.type;
+      ({ body } = keyOrOptions);
+    }
     const mock = (this.publishMocks[exchange] || {})[key];
     if (mock) {
       await mock(exchange, key, body);
