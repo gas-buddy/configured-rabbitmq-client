@@ -72,7 +72,6 @@ tap.test('test exchange group normalization', async (t) => {
        && finalGroups.rejectedOnlyCase.rejectedQueue && 'Rejected queue should be generated when specified with zero retries');
 
   t.ok(finalGroups.perMessageTtl.retryQueue.messageTtl === undefined, 'retryQueue messageTtl should be undefined when perMessageTtl is set');
-  t.ok(finalGroups.perMessageTtl.retryQueue.name.indexOf('nottl') > 0, 'Retry queue should have "nottl" in name when perMessageTtl is set');
 });
 
 tap.test('test exchange group to rabbot config translation', async (t) => {
