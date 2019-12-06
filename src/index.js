@@ -295,6 +295,7 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
                 routingKey: message.fields.routingKey,
                 correlationId: message.properties.correlationId,
                 timestamp: message.properties.timestamp,
+                expiresAfter: exchangeGroup.retryQueue.perMessageTtl || undefined,
                 headers,
               };
               await this.publish(exchangeGroup.retryExchange.name, messageOptions);

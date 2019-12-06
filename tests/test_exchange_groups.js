@@ -28,11 +28,17 @@ const rejectedOnlyCase = {
   keys: 'rejectedonlykey',
 };
 
+const perMessageTtl = {
+  perMessageTtl: true,
+  keys: 'somekey',
+};
+
 const exchangeGroups = {
   simpleCase,
   noRetryCase,
   complexCase,
   rejectedOnlyCase,
+  perMessageTtl,
 };
 
 
@@ -56,6 +62,7 @@ tap.test('test exchange group normalization', async (t) => {
   t.ok(finalGroups.complexCase.queue.name === complexCase.queue.name, 'Deep queue name is accepted');
   t.ok(finalGroups.complexCase.queue.autoDelete === complexCase.queue.autoDelete, 'Deep queue properties are accepted');
   t.ok(finalGroups.complexCase.retryQueue.name === complexCase.retryQueue, 'Additional queue overrides are accepted.');
+  t.ok(finalGroups.complexCase.retryQueue.messageTtl === complexCase.retryDelay, 'messageTtl should match retryDelay on retry queue');
 
   t.ok(finalGroups.rejectedOnlyCase.exchange
        && finalGroups.rejectedOnlyCase.queue
@@ -63,6 +70,8 @@ tap.test('test exchange group normalization', async (t) => {
        && !finalGroups.rejectedOnlyCase.retryQueue
        && finalGroups.rejectedOnlyCase.rejectedExchange
        && finalGroups.rejectedOnlyCase.rejectedQueue && 'Rejected queue should be generated when specified with zero retries');
+
+  t.ok(finalGroups.perMessageTtl.retryQueue.messageTtl === undefined, 'retryQueue messageTtl should be undefined when perMessageTtl is set');
 });
 
 tap.test('test exchange group to rabbot config translation', async (t) => {

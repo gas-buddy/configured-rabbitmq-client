@@ -45,13 +45,14 @@ function normalizeExchangeGroup(key, group) {
   if (normalized.retries) {
     normalized.retryExchange = groupFromInput(group.retryExchange, { name: `${exchangeName}.retry`, persistent });
     normalized.retryQueue = groupFromInput(group.retryQueue, { name: `${normalized.retryExchange.name}.q` });
+    const ttlKey = group.perMessageTtl === true ? 'perMessageTtl' : 'messageTtl';
+    normalized.retryQueue[ttlKey] = normalized.retryDelay;
   }
 
   if (normalized.retries || group.rejectedExchange || group.rejectedQueue) {
     normalized.rejectedExchange = groupFromInput(group.rejectedExchange, { name: `${exchangeName}.rejected`, persistent });
     normalized.rejectedQueue = groupFromInput(group.rejectedQueue, { name: `${normalized.rejectedExchange.name}.q` });
   }
-
 
   return normalized;
 }
@@ -91,9 +92,7 @@ export function rabbotConfigFromExchangeGroups(exchangeGroups) {
     if (g.retryExchange) {
       const retryExchange = Object.assign({}, exchangeDefaults, g.retryExchange);
       const retryQueue = Object.assign({}, queueDefaults, g.retryQueue);
-      retryQueue.messageTtl = g.retryDelay;
       retryQueue.deadLetter = exchange.name;
-
       addBinding(rabbotConfig, retryExchange, retryQueue, g.keys);
     }
 
