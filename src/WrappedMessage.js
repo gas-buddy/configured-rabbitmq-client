@@ -2,7 +2,7 @@
 const messagesInFlight = new Set();
 
 const CALL_INFO = Symbol('Call Info');
-const CLIENT_INFO = Symbol('Rabbot Client');
+const CLIENT_INFO = Symbol('RabbitMQ Client');
 
 function messageComplete(wrapped, eventName) {
   try { messagesInFlight.delete(wrapped); } catch (_) { /* noop */ }
@@ -14,10 +14,10 @@ function messageComplete(wrapped, eventName) {
 
 export class WrappedMessage {
   constructor(client, message) {
-    const { nack, reject, ack, rabbotMessage, ...rest } = message;
+    const { nack, reject, ack, rabbitMessage, ...rest } = message;
     Object.assign(this, rest);
     this.arrivalTime = Date.now();
-    this.rabbotMessage = message;
+    this.rabbitMessage = message;
     messagesInFlight.add(this);
     this[CLIENT_INFO] = client;
     this[CALL_INFO] = {
@@ -30,7 +30,7 @@ export class WrappedMessage {
 
   async ack() {
     try {
-      await this.rabbotMessage.ack();
+      await this.rabbitMessage.ack();
     } catch (error) {
       throw error;
     } finally {
@@ -40,7 +40,7 @@ export class WrappedMessage {
 
   async nack() {
     try {
-      await this.rabbotMessage.nack();
+      await this.rabbitMessage.nack();
     } catch (error) {
       throw error;
     } finally {
@@ -50,7 +50,7 @@ export class WrappedMessage {
 
   async reject() {
     try {
-      await this.rabbotMessage.reject();
+      await this.rabbitMessage.reject();
     } catch (error) {
       throw error;
     } finally {

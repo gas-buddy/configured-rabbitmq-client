@@ -1,6 +1,6 @@
 import tap from 'tap';
 import net from 'net';
-import RabbotClient from '../src/index';
+import RabbitMQClient from '../src/index';
 
 const mqConfig = {
   hostname: process.env.RABBIT_HOST || 'rabbitmq',
@@ -41,7 +41,7 @@ tap.test('wait for rabbit', async (t) => {
 });
 
 tap.test('test_connection', async (t) => {
-  const mq = new RabbotClient(ctx, mqConfig);
+  const mq = new RabbitMQClient(ctx, mqConfig);
   const client = await mq.start(ctx);
   t.ok(client.publish, 'Should have a publish method');
   await mq.stop(ctx);
@@ -50,7 +50,7 @@ tap.test('test_connection', async (t) => {
 
 tap.test('test_connection with array hostname', async (t) => {
   const config = { ...mqConfig, hostname: [mqConfig.hostname, mqConfig.hostname] };
-  const mq = new RabbotClient(ctx, config);
+  const mq = new RabbitMQClient(ctx, config);
   const client = await mq.start(ctx);
   t.ok(client.publish, 'Should have a publish method');
   await mq.stop(ctx);

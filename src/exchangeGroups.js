@@ -67,18 +67,18 @@ export function normalizeExchangeGroups(exchangeGroups) {
   return normalized;
 }
 
-function addBinding(rabbotConfig, exchange, queue, keys) {
-  rabbotConfig.exchanges.push(exchange);
-  rabbotConfig.queues.push(queue);
-  rabbotConfig.bindings.push({
+function addBinding(fooFooConfig, exchange, queue, keys) {
+  fooFooConfig.exchanges.push(exchange);
+  fooFooConfig.queues.push(queue);
+  fooFooConfig.bindings.push({
     exchange: exchange.name,
     target: queue.name,
     keys,
   });
 }
 
-export function rabbotConfigFromExchangeGroups(exchangeGroups) {
-  const rabbotConfig = {
+export function fooFooConfigFromExchangeGroups(exchangeGroups) {
+  const foofooConfig = {
     exchanges: [],
     queues: [],
     bindings: [],
@@ -93,20 +93,20 @@ export function rabbotConfigFromExchangeGroups(exchangeGroups) {
       const retryExchange = Object.assign({}, exchangeDefaults, g.retryExchange);
       const retryQueue = Object.assign({}, queueDefaults, g.retryQueue);
       retryQueue.deadLetter = exchange.name;
-      addBinding(rabbotConfig, retryExchange, retryQueue, g.keys);
+      addBinding(foofooConfig, retryExchange, retryQueue, g.keys);
     }
 
     if (g.rejectedExchange) {
       const rejectedExchange = Object.assign({}, exchangeDefaults, g.rejectedExchange);
       const rejectedQueue = Object.assign({}, queueDefaults, g.rejectedQueue);
 
-      addBinding(rabbotConfig, rejectedExchange, rejectedQueue, g.keys);
+      addBinding(foofooConfig, rejectedExchange, rejectedQueue, g.keys);
 
       queue.deadLetter = rejectedExchange.name;
     }
 
-    addBinding(rabbotConfig, exchange, queue, g.keys);
+    addBinding(foofooConfig, exchange, queue, g.keys);
   });
 
-  return rabbotConfig;
+  return foofooConfig;
 }

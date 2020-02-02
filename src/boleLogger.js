@@ -1,7 +1,7 @@
 import assert from 'assert';
 
 export default function boleWinston(logger, levels = ['debug', 'info', 'warn', 'error']) {
-  assert(logger, 'If rabbot logging is enabled, a logger must be configured');
+  assert(logger, 'If foo-foo-mq logging is enabled, a logger must be configured');
   const stream = {
     _writableState: { objectMode: true },
     write(data) {

@@ -1,10 +1,10 @@
 import { EventEmitter } from 'events';
 import assert from 'assert';
-import rabbot from 'rabbot';
+import foofoo from 'foo-foo-mq';
 import _ from 'lodash';
 import {
   normalizeExchangeGroups,
-  rabbotConfigFromExchangeGroups,
+  fooFooConfigFromExchangeGroups,
 } from './exchangeGroups';
 import { WrappedMessage } from './WrappedMessage';
 import boleLogger from './boleLogger';
@@ -24,7 +24,7 @@ function finalConfigFromConfig(context, opts, mqConnectionConfig) {
   let exchangeGroups = (opts.config && opts.config.exchangeGroups) || {};
   exchangeGroups = normalizeExchangeGroups(exchangeGroups);
 
-  const exchangeGroupConfig = rabbotConfigFromExchangeGroups(exchangeGroups);
+  const exchangeGroupConfig = fooFooConfigFromExchangeGroups(exchangeGroups);
   const finalConfig = Object.assign({}, opts.config);
   delete finalConfig.exchangeGroups;
 
@@ -45,14 +45,14 @@ function finalConfigFromConfig(context, opts, mqConnectionConfig) {
   finalConfig.exchanges = finalConfig.exchanges.concat(dependencies);
 
   if (opts.logging) {
-    rabbot.log(boleLogger(context.logger, Array.isArray(opts.logging) ? opts.logging : undefined));
+    foofoo.log(boleLogger(context.logger, Array.isArray(opts.logging) ? opts.logging : undefined));
   }
 
   finalConfig.exchangeGroups = exchangeGroups;
   return finalConfig;
 }
 
-export default class RabbotClient extends EventEmitter {
+export default class FooFooClient extends EventEmitter {
   constructor(context, opts) {
     super();
     assert(opts, 'configured-rabbitmq-client must be passed arguments');
@@ -82,7 +82,7 @@ export default class RabbotClient extends EventEmitter {
     };
 
     // Event handlers need to be cleaned up afterwards...
-    this.connSubscription = rabbot.on('connected', () => {
+    this.connSubscription = foofoo.on('connected', () => {
       context.logger.info('RabbitMQ connection established.');
     });
 
@@ -94,7 +94,7 @@ export default class RabbotClient extends EventEmitter {
     this.contextFunction = opts.contextFunction;
     this.startedCalled = false;
     this.subs = [];
-    this.client = rabbot;
+    this.client = foofoo;
     this.subscriptions = opts.subscriptions;
   }
 
@@ -119,9 +119,9 @@ export default class RabbotClient extends EventEmitter {
     const maxRetries = 5;
     for (let retries = maxRetries; retries >= 0; retries -= 1) {
       try {
-        context.logger.info('Configuring rabbot');
+        context.logger.info('Configuring RabbitMQ client');
         // eslint-disable-next-line no-await-in-loop
-        await rabbot.configure(this.finalConfig);
+        await foofoo.configure(this.finalConfig);
         break;
       } catch (stringError) {
         if (process.env.MQ_MAKE_EXCHANGES && exchangeErrorRE.test(stringError.message)) {
@@ -135,7 +135,7 @@ export default class RabbotClient extends EventEmitter {
           delete this.finalConfig.exchangeGroups;
           retries += 1; // this one doesn't count
 
-          // Unforunately, rabbot seems to need time to sort its sh** out.
+          // Unforunately, foofoomq seems to need time to sort its sh** out.
           context.logger.info('Queue setup failed. Waiting 2.5s then creating queue', { name: failedQueue });
           // eslint-disable-next-line no-await-in-loop
           await delay(2500);
@@ -158,11 +158,11 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
 
           try {
             // eslint-disable-next-line no-await-in-loop
-            await rabbot.shutdown();
-            rabbot.reset();
-            context.logger.info('Rabbot cleanup complete');
+            await foofoo.shutdown();
+            foofoo.reset();
+            context.logger.info('RabbitMQ cleanup complete');
           } catch (inner) {
-            context.logger.warn('Rabbot cleanup failed', {
+            context.logger.warn('RabbitMQ cleanup failed', {
               error: inner.message,
               stack: inner.stack,
             });
@@ -181,8 +181,8 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
       }
     }
 
-    rabbot.nackUnhandled();
-    rabbot.nackOnError();
+    foofoo.nackUnhandled();
+    foofoo.nackOnError();
 
     if (typeof this.subscriptions === 'object') {
       for (const [, sub] of Object.entries(this.subscriptions)) {
@@ -190,17 +190,17 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
       }
     }
 
-    this.closeSubscription = rabbot.on('closed', () => {
+    this.closeSubscription = foofoo.on('closed', () => {
       if (!this.shuttingDown) {
         context.logger.error('RabbitMQ connection was closed.');
       }
     });
-    this.unreachSubscription = rabbot.on('unreachable', () => {
+    this.unreachSubscription = foofoo.on('unreachable', () => {
       // TODO shutdown the process?
       context.logger.error('RabbitMQ connection has failed permanently.');
       this.emit('unreachable');
     });
-    this.failSubscription = rabbot.onReturned('failed', (e) => {
+    this.failSubscription = foofoo.onReturned('failed', (e) => {
       context.logger.error('RabbitMQ connection has failed.', {
         error: e.message,
         stack: e.stack,
@@ -215,7 +215,7 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
     context.logger.info('Closing RabbitMQ connection');
     await Promise.all(this.subs.map((s) => {
       s[0].remove();
-      return RabbotClient.gracefulQueueShutdown(s[1]);
+      return FooFooClient.gracefulQueueShutdown(s[1]);
     }));
     this.shuttingDown = true;
     this.connSubscription.unsubscribe();
@@ -228,8 +228,8 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
       this.unreachSubscription.unsubscribe();
       delete this.unreachSubscription;
     }
-    await rabbot.shutdown();
-    rabbot.reset();
+    await foofoo.shutdown();
+    foofoo.reset();
     this.startCalled = false;
   }
 
@@ -244,8 +244,8 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
       }
     }
 
-    let wrappedHandler = async (rabbotMessage) => {
-      const message = new WrappedMessage(this, rabbotMessage);
+    let wrappedHandler = async (rmqMessage) => {
+      const message = new WrappedMessage(this, rmqMessage);
       if (handler.length === 2) {
         const context = this.contextFunction
           && await this.contextFunction(this.originalContext, message);
@@ -261,8 +261,8 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
     if (exchangeGroup) {
       finalQueueName = exchangeGroup.queue.name;
       if (exchangeGroup.retries) {
-        wrappedHandler = async (rabbotMessage) => {
-          const message = new WrappedMessage(this, rabbotMessage);
+        wrappedHandler = async (rmqMessage) => {
+          const message = new WrappedMessage(this, rmqMessage);
           let context;
           try {
             if (handler.length === 2) {
@@ -308,11 +308,11 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
       }
     }
 
-    const handlerThunk = rabbot.handle(type, wrappedHandler, finalQueueName);
-    let mq = rabbot.getQueue(finalQueueName);
+    const handlerThunk = foofoo.handle(type, wrappedHandler, finalQueueName);
+    let mq = foofoo.getQueue(finalQueueName);
     if (!mq) {
       // Let's give it a try.
-      mq = rabbot.getQueue(`${finalQueueName}.q`);
+      mq = foofoo.getQueue(`${finalQueueName}.q`);
     }
     assert(mq, `Specified queue (${finalQueueName}) does not exist`);
     mq.subscribe(false);
@@ -334,7 +334,7 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
           .once();
       });
     }
-    // Mostly for tests which restart right away, but rabbot is finicky
+    // Mostly for tests which restart right away, but Rabbit is finicky
     return delay(1000);
   }
 
@@ -343,7 +343,7 @@ the MQ_MAKE_EXCHANGES environment variable and restart.
   }
 }
 
-export class MockRabbotClient {
+export class MockRabbitClient {
   constructor() {
     this.subscriptions = {};
     this.publishMocks = {};

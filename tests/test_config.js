@@ -1,7 +1,7 @@
 import tap from 'tap';
 import net from 'net';
 import bluebird from 'bluebird';
-import RabbotClient from '../src/index';
+import RabbitMQClient from '../src/index';
 
 const mqConfig = {
   hostname: process.env.RABBIT_HOST || 'rabbitmq',
@@ -56,7 +56,7 @@ tap.test('wait for rabbit', async (t) => {
 tap.test('test exchange group retry', async (t) => {
   const retryCount = 5;
   t.plan((retryCount + 3) + retryCount);
-  const mq = new RabbotClient(ctx, configWithExchangeGroups({
+  const mq = new RabbitMQClient(ctx, configWithExchangeGroups({
     test: {
       retries: retryCount,
       retryDelay: 250,
@@ -73,7 +73,7 @@ tap.test('test exchange group retry', async (t) => {
         if (counter > 0) {
           t.equal(message.properties.headers.error, errorMessage, 'Previous error message is written to message headers');
         } else {
-          t.equal(RabbotClient.activeMessages.size, 1, 'Should have 1 active message');
+          t.equal(RabbitMQClient.activeMessages.size, 1, 'Should have 1 active message');
         }
         counter += 1;
         t.ok(true, `Recieved messsage for the ${counter} time.`);
@@ -85,13 +85,13 @@ tap.test('test exchange group retry', async (t) => {
       });
     await mq.publish('test', 'testkey', {});
   }).then(async () => {
-    t.equal(RabbotClient.activeMessages.size, 0, 'Should have 0 active message');
+    t.equal(RabbitMQClient.activeMessages.size, 0, 'Should have 0 active message');
     await mq.stop(ctx);
   });
 });
 
 tap.test('test routing key reuse', async (t) => {
-  const mq = new RabbotClient(ctx, configWithExchangeGroups({
+  const mq = new RabbitMQClient(ctx, configWithExchangeGroups({
     one: {
       keys: 'number',
     },
@@ -129,7 +129,7 @@ tap.test('test routing key reuse', async (t) => {
 tap.test('test delivery_mode pass thru', async (t) => {
   const retryCount = 2;
   const retryDelay = 380;
-  const mq = new RabbotClient(ctx, configWithExchangeGroups({
+  const mq = new RabbitMQClient(ctx, configWithExchangeGroups({
     persistent: {
       retries: retryCount,
       retryDelay,
@@ -168,6 +168,6 @@ tap.test('test delivery_mode pass thru', async (t) => {
       });
     await mq.publish('persistent', 'one', {});
   });
-  t.equal(RabbotClient.activeMessages.size, 0, 'Should have 0 active message');
+  t.equal(RabbitMQClient.activeMessages.size, 0, 'Should have 0 active message');
   await mq.stop(ctx);
 });

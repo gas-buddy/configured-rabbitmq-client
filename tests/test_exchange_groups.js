@@ -1,6 +1,6 @@
 import tap from 'tap';
 import _ from 'lodash';
-import { normalizeExchangeGroups, rabbotConfigFromExchangeGroups } from '../src/exchangeGroups';
+import { normalizeExchangeGroups, fooFooConfigFromExchangeGroups } from '../src/exchangeGroups';
 
 const simpleCase = {
   keys: 'simplekey',
@@ -74,10 +74,10 @@ tap.test('test exchange group normalization', async (t) => {
   t.ok(finalGroups.perMessageTtl.retryQueue.messageTtl === undefined, 'retryQueue messageTtl should be undefined when perMessageTtl is set');
 });
 
-tap.test('test exchange group to rabbot config translation', async (t) => {
+tap.test('test exchange group to rabbit config translation', async (t) => {
   const finalGroups = normalizeExchangeGroups(exchangeGroups);
-  const rabbotConfig = rabbotConfigFromExchangeGroups(finalGroups);
+  const config = fooFooConfigFromExchangeGroups(finalGroups);
 
-  t.ok(_.find(rabbotConfig.queues, ['name', finalGroups.complexCase.queue.name]).autoDelete === complexCase.queue.autoDelete, 'Specific configuration propogates to rabbot config');
-  t.ok(_.find(rabbotConfig.exchanges, ['name', finalGroups.rejectedOnlyCase.exchange.name]), 'No retry rejected exchange gets made');
+  t.ok(_.find(config.queues, ['name', finalGroups.complexCase.queue.name]).autoDelete === complexCase.queue.autoDelete, 'Specific configuration propogates to rabbit config');
+  t.ok(_.find(config.exchanges, ['name', finalGroups.rejectedOnlyCase.exchange.name]), 'No retry rejected exchange gets made');
 });
