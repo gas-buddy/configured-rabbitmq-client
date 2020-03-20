@@ -30,7 +30,7 @@
     "bluebird": "^3.7.2",
     "cross-env": "^7.0.0",
     "eslint-config-gasbuddy": "^5.3.0",
-    "tap": "^14.10.6"
+    "tap": "^14.10.7"
   },
   "dependencies": {
     "foo-foo-mq": "^4.0.0",
