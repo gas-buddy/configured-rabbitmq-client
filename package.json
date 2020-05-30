@@ -24,7 +24,7 @@
   "author": "GasBuddy",
   "license": "MIT",
   "devDependencies": {
-    "@babel/cli": "^7.8.4",
+    "@babel/cli": "^7.10.1",
     "@babel/register": "^7.8.3",
     "babel-preset-gasbuddy": "^5.6.1",
     "bluebird": "^3.7.2",
